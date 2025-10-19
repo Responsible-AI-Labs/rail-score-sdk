@@ -17,7 +17,7 @@ import time
 
 # Initialize the client
 client = RailScoreClient(
-    api_key='your-api-key-here'
+    api_key='your-rail-api-key-here'
 )
 
 print("=" * 70)
@@ -226,7 +226,7 @@ print("-" * 70)
 try:
     # Create client with short timeout for demonstration
     timeout_client = RailScoreClient(
-        api_key='your-api-key-here',
+        api_key='your-rail-api-key-here',
         timeout=1  # 1 second timeout (very short)
     )
 

@@ -49,7 +49,7 @@ print("""
 Create a .env file in your project root:
 
 # .env file
-RAIL_API_KEY=your-api-key-here
+RAIL_API_KEY=your-rail-api-key-here
 RAIL_BASE_URL=https://api.responsibleailabs.ai
 RAIL_TIMEOUT=60
 
@@ -273,7 +273,7 @@ Kubernetes configuration:
 
 # Create secret
 kubectl create secret generic rail-score-secrets \\
-  --from-literal=api-key=your-api-key-here
+  --from-literal=api-key=your-rail-api-key-here
 
 # deployment.yaml
 apiVersion: apps/v1
@@ -315,7 +315,7 @@ AWS SSM Parameter Store:
 # Store API key (do this once)
 aws ssm put-parameter \\
   --name "/myapp/rail-score/api-key" \\
-  --value "your-api-key-here" \\
+  --value "your-rail-api-key-here" \\
   --type "SecureString"
 
 # In your Python application:
@@ -386,7 +386,7 @@ print("""
 
 Example .env.example file:
 # Copy this to .env and fill in your values
-RAIL_API_KEY=your-api-key-here
+RAIL_API_KEY=your-rail-api-key-here
 RAIL_BASE_URL=https://api.responsibleailabs.ai
 RAIL_TIMEOUT=30
 APP_ENV=development

@@ -12,7 +12,7 @@ This directory contains comprehensive examples demonstrating how to use the RAIL
 2. **Get your API key:**
    - Sign up at https://responsibleailabs.ai
    - Get your API key from the dashboard
-   - Replace `'your-api-key-here'` in the examples
+   - Replace `'your-rail-api-key-here'` in the examples
 
 3. **Run an example:**
    ```bash
@@ -256,14 +256,14 @@ python examples/basic_usage.py
 
 ### With API Key from Environment
 ```bash
-export RAIL_API_KEY=your-api-key-here
+export RAIL_API_KEY=your-rail-api-key-here
 python examples/basic_usage.py
 ```
 
 ### With .env File
 Create `.env` file:
 ```
-RAIL_API_KEY=your-api-key-here
+RAIL_API_KEY=your-rail-api-key-here
 RAIL_BASE_URL=https://api.responsibleailabs.ai
 RAIL_TIMEOUT=30
 ```
@@ -275,7 +275,7 @@ python examples/environment_config.py
 
 ## Modifying Examples
 
-All examples use `api_key='your-api-key-here'`. Replace with:
+All examples use `api_key='your-rail-api-key-here'`. Replace with:
 
 ### Option 1: Hardcode (for testing only)
 ```python

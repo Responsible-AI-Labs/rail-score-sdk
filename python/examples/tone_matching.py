@@ -8,7 +8,7 @@ from rail_score_sdk import RailScoreClient
 
 # Initialize the client
 client = RailScoreClient(
-    api_key='your-api-key-here'
+    api_key='your-rail-api-key-here'
 )
 
 # Step 1: Analyze tone from sources

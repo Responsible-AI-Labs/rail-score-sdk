@@ -17,7 +17,7 @@ from typing import List, Dict, Any
 
 # Initialize the client
 client = RailScoreClient(
-    api_key='your-api-key-here'
+    api_key='your-rail-api-key-here'
 )
 
 # Sample content for batch processing

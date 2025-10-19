@@ -9,7 +9,7 @@ from rail_score_sdk import RailScoreClient
 
 # Initialize the client
 client = RailScoreClient(
-    api_key='your-api-key-here',
+    api_key='your-rail-api-key-here',
     timeout=60  # Longer timeout for regeneration
 )
 

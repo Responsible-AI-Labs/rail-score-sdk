@@ -10,7 +10,7 @@ import json
 
 # Initialize the client
 client = RailScoreClient(
-    api_key='your-api-key-here',
+    api_key='your-rail-api-key-here',
     timeout=60
 )
 
