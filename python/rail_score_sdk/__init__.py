@@ -6,45 +6,81 @@ Evaluate AI-generated content across 8 dimensions of Responsible AI.
 
 Example:
     >>> from rail_score_sdk import RailScoreClient
-    >>> client = RailScoreClient(api_key='your-api-key')
-    >>> result = client.calculate(
+    >>> client = RailScoreClient(api_key="rail_xxx...")
+    >>> result = client.eval(
     ...     content="AI should be fair and transparent.",
-    ...     domain='general'
+    ...     mode="basic",
     ... )
-    >>> print(f"Score: {result.rail_score} ({result.grade})")
+    >>> print(f"Score: {result.rail_score.score}/10 — {result.rail_score.summary}")
 """
 
 from .client import RailScoreClient
 from .models import (
-    RailScoreResponse,
-    GenerateResponse,
-    RegenerateResponse,
-    ToneAnalyzeResponse,
-    ToneMatchResponse,
-    ComplianceResponse,
-    DimensionScores,
+    RailScore,
+    DimensionScore,
+    Issue,
+    EvalResult,
+    ProtectedEvalResult,
+    ProtectedRegenerateResult,
+    RegenerateMetadata,
+    ComplianceScore,
+    ComplianceDimensionScore,
+    RequirementResult,
+    ComplianceIssue,
+    RiskClassificationDetail,
+    ComplianceResult,
+    CrossFrameworkSummary,
+    MultiComplianceResult,
+    HealthResponse,
+    VersionResponse,
 )
 from .exceptions import (
     RailScoreError,
     AuthenticationError,
-    RateLimitError,
     InsufficientCreditsError,
+    InsufficientTierError,
     ValidationError,
+    ContentTooHarmfulError,
+    RateLimitError,
+    EvaluationFailedError,
+    NotImplementedByServerError,
+    ServiceUnavailableError,
 )
 
-__version__ = "1.0.1"
+__version__ = "2.0.0"
 __all__ = [
+    # Client
     "RailScoreClient",
-    "RailScoreResponse",
-    "GenerateResponse",
-    "RegenerateResponse",
-    "ToneAnalyzeResponse",
-    "ToneMatchResponse",
-    "ComplianceResponse",
-    "DimensionScores",
+    # Eval models
+    "RailScore",
+    "DimensionScore",
+    "Issue",
+    "EvalResult",
+    # Protected models
+    "ProtectedEvalResult",
+    "ProtectedRegenerateResult",
+    "RegenerateMetadata",
+    # Compliance models
+    "ComplianceScore",
+    "ComplianceDimensionScore",
+    "RequirementResult",
+    "ComplianceIssue",
+    "RiskClassificationDetail",
+    "ComplianceResult",
+    "CrossFrameworkSummary",
+    "MultiComplianceResult",
+    # Utility models
+    "HealthResponse",
+    "VersionResponse",
+    # Exceptions
     "RailScoreError",
     "AuthenticationError",
-    "RateLimitError",
     "InsufficientCreditsError",
+    "InsufficientTierError",
     "ValidationError",
+    "ContentTooHarmfulError",
+    "RateLimitError",
+    "EvaluationFailedError",
+    "NotImplementedByServerError",
+    "ServiceUnavailableError",
 ]

@@ -1,17 +1,15 @@
 """
-Basic usage example for RAIL Score Python SDK.
+Basic usage example for RAIL Score Python SDK v2.
 
-This example shows the most common use case: calculating a RAIL score for content.
+Shows the most common use cases: basic eval and deep eval with explanations.
 """
 
 from rail_score_sdk import RailScoreClient
 
 # Initialize the client
-client = RailScoreClient(
-    api_key='your-api-key-here'
-)
+client = RailScoreClient(api_key="your-api-key-here")
 
-# Calculate RAIL score for content
+# --- 1. Basic evaluation (all 8 dimensions) ---
 content = """
 Artificial intelligence has the potential to transform healthcare by improving
 diagnostic accuracy and personalizing treatment plans. However, we must ensure
@@ -19,29 +17,34 @@ that AI systems are developed responsibly, with careful attention to patient
 privacy, data security, and equitable access to these technologies.
 """
 
-result = client.calculate(
-    content=content,
-    domain='healthcare',
-    explain_scores=True
-)
+result = client.eval(content=content, mode="basic")
 
-# Display results
-print(f"RAIL Score: {result.rail_score}/10")
-print(f"Grade: {result.grade}")
+print(f"RAIL Score: {result.rail_score.score}/10")
+print(f"Summary: {result.rail_score.summary}")
+print(f"Confidence: {result.rail_score.confidence}")
 print(f"\nDimension Scores:")
 
-for dimension, details in result.dimension_scores.items():
-    print(f"  {dimension.capitalize()}: {details.score}/10 ({details.grade})")
-    if details.suggestions:
-        print(f"    Suggestion: {details.suggestions[0]}")
+for dimension, score in result.dimension_scores.items():
+    print(f"  {dimension}: {score.score}/10 (confidence: {score.confidence})")
 
-print(f"\nStrengths:")
-for strength in result.overall_analysis.strengths:
-    print(f"  • {strength}")
+# --- 2. Deep evaluation with explanations and issues ---
+deep_result = client.eval(
+    content="Take 500mg of ibuprofen every 4 hours for pain relief.",
+    mode="deep",
+    dimensions=["safety", "reliability"],
+    domain="healthcare",
+    include_suggestions=True,
+)
 
-print(f"\nWeaknesses:")
-for weakness in result.overall_analysis.weaknesses:
-    print(f"  • {weakness}")
+print(f"\nDeep Evaluation: {deep_result.rail_score.summary}")
+for dimension, score in deep_result.dimension_scores.items():
+    print(f"\n  {dimension}: {score.score}/10")
+    if score.explanation:
+        print(f"    Explanation: {score.explanation}")
+    if score.issues:
+        print(f"    Issues: {', '.join(score.issues)}")
 
-print(f"\nTop Priority: {result.overall_analysis.top_priority}")
-print(f"\nEvaluation completed in {result.evaluation_metadata.evaluation_time_ms}ms")
+if deep_result.improvement_suggestions:
+    print("\nImprovement Suggestions:")
+    for suggestion in deep_result.improvement_suggestions:
+        print(f"  - {suggestion}")
