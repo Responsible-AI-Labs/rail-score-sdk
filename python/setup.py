@@ -7,7 +7,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="rail-score-sdk",
-    version="1.0.1",
+    version="2.0.0",
     author="Responsible AI Labs Team",
     author_email="research@responsibleailabs.ai",
     description="Official Python SDK for RAIL Score API - Responsible AI Content Evaluation",

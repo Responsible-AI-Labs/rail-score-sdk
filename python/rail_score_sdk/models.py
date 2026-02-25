@@ -1,176 +1,244 @@
-"""Data models for RAIL Score SDK."""
+"""Data models for RAIL Score SDK v2."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional
 
 
-@dataclass
-class DimensionScores:
-    """RAIL dimension scores (0-10 scale)."""
-
-    fairness: float
-    safety: float
-    reliability: float
-    transparency: float
-    privacy: float
-    accountability: float
-    inclusivity: float
-    user_impact: float
+# ---------------------------------------------------------------------------
+# Evaluation models (/railscore/v1/eval)
+# ---------------------------------------------------------------------------
 
 
 @dataclass
-class DimensionDetails:
-    """Detailed information for a single dimension."""
+class RailScore:
+    """Overall RAIL score with confidence and summary."""
 
     score: float
-    grade: str
+    confidence: float
+    summary: str
+
+
+@dataclass
+class DimensionScore:
+    """Per-dimension score returned by the evaluation endpoint.
+
+    ``explanation`` and ``issues`` are only populated when requested
+    via ``include_explanations`` / ``include_issues``.
+    """
+
+    score: float
+    confidence: float
+    explanation: Optional[str] = None
+    issues: Optional[List[str]] = None
+
+
+@dataclass
+class Issue:
+    """An issue identified during evaluation."""
+
+    dimension: str
+    description: str
+
+
+@dataclass
+class EvalResult:
+    """Result from the ``/railscore/v1/eval`` endpoint."""
+
+    rail_score: RailScore
     explanation: str
-    suggestions: List[str]
+    dimension_scores: Dict[str, DimensionScore]
+    issues: Optional[List[Issue]] = None
+    improvement_suggestions: Optional[List[str]] = None
+    from_cache: bool = False
+
+
+# ---------------------------------------------------------------------------
+# Protected content models (/railscore/v1/protected)
+# ---------------------------------------------------------------------------
 
 
 @dataclass
-class OverallAnalysis:
-    """Overall analysis of content."""
+class ProtectedEvalResult:
+    """Result from protected endpoint with ``action='evaluate'``."""
 
-    strengths: List[str]
-    weaknesses: List[str]
-    top_priority: str
-
-
-@dataclass
-class EvaluationMetadata:
-    """Metadata about the evaluation."""
-
-    evaluation_time_ms: int
-    model_used: str
-    cached: bool
-    trace_id: str
-    domain: str
-    source: Optional[str] = None
+    rail_score: RailScore
+    threshold_met: bool
+    improvement_needed: bool
+    improvement_prompt: Optional[str] = None
+    dimension_scores: Optional[Dict[str, DimensionScore]] = None
 
 
 @dataclass
-class ResponseMetadata:
-    """Metadata about the API response."""
-
-    credits_used: int
-    credits_remaining: int
-    trace_id: str
-    tier: str
-
-
-@dataclass
-class RailScoreResponse:
-    """Response from the calculate endpoint."""
-
-    rail_score: float
-    grade: str
-    dimension_scores: Dict[str, DimensionDetails]
-    overall_analysis: OverallAnalysis
-    evaluation_metadata: EvaluationMetadata
-    metadata: Optional[ResponseMetadata] = None
-
-
-@dataclass
-class GenerationMetadata:
-    """Metadata about content generation."""
+class RegenerateMetadata:
+    """Metadata for a regeneration response."""
 
     model: str
-    attempts: int
-    generation_time_ms: int
+    input_tokens: int
+    output_tokens: int
+    total_tokens: Optional[int] = None
 
 
 @dataclass
-class RailScores:
-    """RAIL scores for generated content."""
+class ProtectedRegenerateResult:
+    """Result from protected endpoint with ``action='regenerate'``."""
 
-    rail_score: float
-    dimension_scores: Dict[str, float]
-    requirements_met: bool
-    failed_requirements: List[Dict[str, Any]]
+    improved_content: str
+    issues_addressed: List[str]
+    metadata: Optional[RegenerateMetadata] = None
 
 
-@dataclass
-class GenerateResponse:
-    """Response from the generate endpoint."""
-
-    content: str
-    generation_metadata: GenerationMetadata
-    rail_scores: RailScores
-    generation_history: List[Dict[str, Any]]
-    metadata: Optional[ResponseMetadata] = None
+# ---------------------------------------------------------------------------
+# Compliance models (/railscore/v1/compliance/check)
+# ---------------------------------------------------------------------------
 
 
 @dataclass
-class ImprovementDetail:
-    """Details about dimension improvement."""
+class ComplianceScore:
+    """Overall compliance score for a framework."""
 
-    before: float
-    after: float
-    improvement: float
-
-
-@dataclass
-class RegenerateResponse:
-    """Response from the regenerate endpoint."""
-
-    content: str
-    improvements: Dict[str, ImprovementDetail]
-    changes_made: List[str]
-    overall_scores: Dict[str, float]
-    metadata: Optional[ResponseMetadata] = None
+    score: float
+    confidence: float
+    label: str
+    summary: str
 
 
 @dataclass
-class ToneCharacteristics:
-    """Tone profile characteristics."""
+class ComplianceDimensionScore:
+    """Per-dimension score within a compliance evaluation."""
 
-    formality: float
-    complexity: float
-    emotion: float
-    technical_level: float
-    sentence_structure: str
-    vocabulary_level: str
-    voice: str
-    style_markers: List[str]
+    score: float
+    confidence: float
+    explanation: Optional[str] = None
+    issues: Optional[List[str]] = None
 
 
 @dataclass
-class ToneProfile:
-    """Tone profile for content."""
+class RequirementResult:
+    """Detailed result for a single compliance requirement."""
 
-    profile_id: str
-    name: str
-    characteristics: ToneCharacteristics
-    created_at: str
-
-
-@dataclass
-class ToneAnalyzeResponse:
-    """Response from tone analyze endpoint."""
-
-    tone_profile: ToneProfile
-    metadata: Optional[ResponseMetadata] = None
-
-
-@dataclass
-class ToneMatchResponse:
-    """Response from tone match endpoint."""
-
-    matched_content: str
-    match_score: float
-    adjustments_made: List[str]
-    comparison: Dict[str, Any]
-    metadata: Optional[ResponseMetadata] = None
+    requirement_id: str
+    requirement: str
+    article: str
+    reference_url: str
+    status: str
+    score: float
+    confidence: float
+    threshold: float
+    ai_specific: bool
+    dimension_sources: List[str]
+    evaluation_method: str
+    issue: Optional[str] = None
+    regulatory_deadline: Optional[str] = None
+    penalty_exposure: Optional[str] = None
 
 
 @dataclass
-class ComplianceResponse:
-    """Response from compliance endpoints."""
+class ComplianceIssue:
+    """A compliance issue with remediation guidance."""
 
-    overall_score: float
-    compliance_status: str
-    criteria_scores: Dict[str, float]
-    violations: List[Dict[str, Any]]
-    recommendations: List[str]
-    metadata: Optional[ResponseMetadata] = None
+    id: str
+    description: str
+    dimension: str
+    severity: str
+    requirement: str
+    article: str
+    reference_url: str
+    remediation_effort: str
+    remediation_deadline_days: Optional[int] = None
+    remediation_deadline_date: Optional[str] = None
+
+
+@dataclass
+class RiskClassificationDetail:
+    """EU AI Act risk classification detail."""
+
+    tier: str
+    basis: str
+    obligations: Optional[List[str]] = None
+
+
+@dataclass
+class ComplianceResult:
+    """Result from ``/railscore/v1/compliance/check`` for a single framework."""
+
+    framework: str
+    framework_version: str
+    framework_url: str
+    evaluated_at: str
+    compliance_score: ComplianceScore
+    dimension_scores: Dict[str, ComplianceDimensionScore]
+    requirements_checked: int
+    requirements_passed: int
+    requirements_failed: int
+    requirements_warned: int
+    requirements: List[RequirementResult]
+    issues: List[ComplianceIssue]
+    improvement_suggestions: List[str]
+    risk_classification_detail: Optional[RiskClassificationDetail] = None
+    partial_result: bool = False
+    from_cache: bool = False
+    credits: Optional[float] = None
+
+
+@dataclass
+class CrossFrameworkSummary:
+    """Summary across multiple compliance frameworks."""
+
+    frameworks_evaluated: int
+    average_score: float
+    weakest_framework: str
+    weakest_score: float
+    credits: Optional[float] = None
+
+
+@dataclass
+class MultiComplianceResult:
+    """Result from multi-framework compliance evaluation."""
+
+    results: Dict[str, ComplianceResult]
+    cross_framework_summary: CrossFrameworkSummary
+
+
+# ---------------------------------------------------------------------------
+# Explanation models (/railscore/v1/explain)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class ExplainResult:
+    """Result from the ``/railscore/v1/explain`` endpoint."""
+
+    explanations: Dict[str, str]
+
+
+# ---------------------------------------------------------------------------
+# Utility models
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class HealthResponse:
+    """Response from ``/health``."""
+
+    status: str
+    service: str
+
+
+@dataclass
+class VersionResponse:
+    """Response from ``/version``."""
+
+    version: str
+    api_version: str
+    optimizations: Dict[str, bool]
+    models_available: List[str]
+
+
+@dataclass
+class ModelInfoResponse:
+    """Response from ``/railscore/v1/model/info``."""
+
+    endpoints: Dict[str, Any]
+    modes: Dict[str, Any]
+    native_model: Dict[str, Any]
+    explanation_generator: Dict[str, Any]

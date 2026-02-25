@@ -1,31 +1,36 @@
 """RAIL Score API client implementation."""
 
 import requests
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Union
 from .models import (
-    RailScoreResponse,
-    GenerateResponse,
-    RegenerateResponse,
-    ToneAnalyzeResponse,
-    ToneMatchResponse,
-    ComplianceResponse,
-    DimensionDetails,
-    OverallAnalysis,
-    EvaluationMetadata,
-    ResponseMetadata,
-    GenerationMetadata,
-    RailScores,
-    ImprovementDetail,
-    ToneProfile,
-    ToneCharacteristics,
+    RailScore,
+    DimensionScore,
+    Issue,
+    EvalResult,
+    ProtectedEvalResult,
+    ProtectedRegenerateResult,
+    RegenerateMetadata,
+    ComplianceScore,
+    ComplianceDimensionScore,
+    RequirementResult,
+    ComplianceIssue,
+    RiskClassificationDetail,
+    ComplianceResult,
+    CrossFrameworkSummary,
+    MultiComplianceResult,
+    HealthResponse,
+    VersionResponse,
 )
 from .exceptions import (
     RailScoreError,
     AuthenticationError,
-    RateLimitError,
     InsufficientCreditsError,
-    ValidationError,
     InsufficientTierError,
+    ValidationError,
+    ContentTooHarmfulError,
+    RateLimitError,
+    EvaluationFailedError,
+    NotImplementedByServerError,
     ServiceUnavailableError,
 )
 
@@ -34,21 +39,65 @@ class RailScoreClient:
     """
     Official RAIL Score Python SDK.
 
-    Provides methods to interact with all RAIL Score API endpoints.
+    Provides methods to interact with all RAIL Score API endpoints
+    for evaluating AI-generated content across 8 dimensions of
+    Responsible AI.
 
     Args:
-        api_key: Your RAIL Score API key
-        base_url: API base URL (default: https://api.responsibleailabs.ai)
-        timeout: Request timeout in seconds (default: 30)
+        api_key: Your RAIL Score API key or JWT token.
+        base_url: API base URL (default: https://api.responsibleailabs.ai).
+        timeout: Request timeout in seconds (default: 30).
 
     Example:
-        >>> client = RailScoreClient(api_key='your-api-key')
-        >>> result = client.calculate(
+        >>> client = RailScoreClient(api_key="rail_xxx...")
+        >>> result = client.eval(
         ...     content="AI should prioritize human welfare.",
-        ...     domain='general'
+        ...     mode="basic",
         ... )
-        >>> print(f"Score: {result.rail_score}/10")
+        >>> print(f"Score: {result.rail_score.score}/10")
     """
+
+    VALID_DIMENSIONS = frozenset(
+        [
+            "fairness",
+            "safety",
+            "reliability",
+            "transparency",
+            "privacy",
+            "accountability",
+            "inclusivity",
+            "user_impact",
+        ]
+    )
+
+    VALID_MODES = frozenset(["basic", "deep"])
+
+    VALID_DOMAINS = frozenset(
+        ["general", "healthcare", "finance", "legal", "education", "code"]
+    )
+
+    VALID_USECASES = frozenset(
+        [
+            "general",
+            "chatbot",
+            "content_generation",
+            "summarization",
+            "translation",
+            "code_generation",
+        ]
+    )
+
+    VALID_FRAMEWORKS = frozenset(
+        ["gdpr", "ccpa", "hipaa", "eu_ai_act", "india_dpdp", "india_ai_gov"]
+    )
+
+    FRAMEWORK_ALIASES = {
+        "ai_act": "eu_ai_act",
+        "euaia": "eu_ai_act",
+        "dpdp": "india_dpdp",
+        "ai_governance": "india_ai_gov",
+        "india_ai": "india_ai_gov",
+    }
 
     def __init__(
         self,
@@ -56,17 +105,20 @@ class RailScoreClient:
         base_url: str = "https://api.responsibleailabs.ai",
         timeout: int = 30,
     ):
-        """Initialize the RAIL Score client."""
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.session = requests.Session()
         self.session.headers.update(
             {
-                "X-API-Key": api_key,
+                "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
             }
         )
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
 
     def _request(
         self,
@@ -74,23 +126,28 @@ class RailScoreClient:
         endpoint: str,
         json: Optional[Dict[str, Any]] = None,
         params: Optional[Dict[str, Any]] = None,
+        authenticated: bool = True,
     ) -> Dict[str, Any]:
-        """
-        Make HTTP request to API.
+        """Make an HTTP request to the API.
 
         Args:
-            method: HTTP method (GET, POST, etc.)
-            endpoint: API endpoint path
-            json: JSON request body
-            params: Query parameters
+            method: HTTP method.
+            endpoint: API endpoint path.
+            json: JSON request body.
+            params: Query parameters.
+            authenticated: Whether to include the auth header (default True).
 
         Returns:
-            Parsed JSON response
+            Parsed JSON response dict.
 
         Raises:
-            RailScoreError: For API errors
+            RailScoreError: On API or network errors.
         """
         url = f"{self.base_url}{endpoint}"
+
+        headers = {}
+        if not authenticated:
+            headers["Authorization"] = ""
 
         try:
             response = self.session.request(
@@ -99,514 +156,511 @@ class RailScoreClient:
                 json=json,
                 params=params,
                 timeout=self.timeout,
+                headers=headers if not authenticated else None,
             )
 
-            # Handle error responses
             if not response.ok:
                 self._handle_error(response)
 
             return response.json()
 
         except requests.exceptions.Timeout:
-            raise RailScoreError("Request timeout")
+            raise RailScoreError("Request timeout", status_code=None)
         except requests.exceptions.RequestException as e:
-            raise RailScoreError(f"Network error: {str(e)}")
+            raise RailScoreError(f"Network error: {str(e)}", status_code=None)
 
-    def _handle_error(self, response: requests.Response):
-        """Handle API error responses."""
+    def _handle_error(self, response: requests.Response) -> None:
+        """Map HTTP status codes to typed exceptions."""
         try:
             error_data = response.json()
-            error_message = error_data.get("error", {}).get(
-                "message", "Unknown error"
-            )
-        except:
+            error_message = error_data.get("error", "Unknown error")
+        except Exception:
+            error_data = {}
             error_message = response.text or "Unknown error"
 
-        if response.status_code == 401:
-            raise AuthenticationError(error_message, response.status_code, error_data)
-        elif response.status_code == 429:
-            raise RateLimitError(error_message, response.status_code, error_data)
-        elif response.status_code == 402:
-            raise InsufficientCreditsError(
-                error_message, response.status_code, error_data
-            )
-        elif response.status_code == 400:
-            raise ValidationError(error_message, response.status_code, error_data)
-        elif response.status_code == 403:
-            raise InsufficientTierError(
-                error_message, response.status_code, error_data
-            )
-        elif response.status_code == 503:
-            raise ServiceUnavailableError(
-                error_message, response.status_code, error_data
-            )
+        status = response.status_code
+        if status == 400:
+            raise ValidationError(error_message, status, error_data)
+        elif status == 401:
+            raise AuthenticationError(error_message, status, error_data)
+        elif status == 402:
+            raise InsufficientCreditsError(error_message, status, error_data)
+        elif status == 403:
+            raise InsufficientTierError(error_message, status, error_data)
+        elif status == 422:
+            raise ContentTooHarmfulError(error_message, status, error_data)
+        elif status == 429:
+            raise RateLimitError(error_message, status, error_data)
+        elif status == 500:
+            raise EvaluationFailedError(error_message, status, error_data)
+        elif status == 501:
+            raise NotImplementedByServerError(error_message, status, error_data)
+        elif status == 503:
+            raise ServiceUnavailableError(error_message, status, error_data)
         else:
-            raise RailScoreError(error_message, response.status_code, error_data)
+            raise RailScoreError(error_message, status, error_data)
 
-    def calculate(
+    # ------------------------------------------------------------------
+    # Parsing helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _parse_rail_score(data: Dict[str, Any]) -> RailScore:
+        return RailScore(
+            score=data["score"],
+            confidence=data["confidence"],
+            summary=data["summary"],
+        )
+
+    @staticmethod
+    def _parse_dimension_scores(
+        data: Dict[str, Any],
+    ) -> Dict[str, DimensionScore]:
+        scores = {}
+        for dim, info in data.items():
+            scores[dim] = DimensionScore(
+                score=info["score"],
+                confidence=info["confidence"],
+                explanation=info.get("explanation"),
+                issues=info.get("issues"),
+            )
+        return scores
+
+    @staticmethod
+    def _parse_issues(data: Optional[List[Dict[str, Any]]]) -> Optional[List[Issue]]:
+        if data is None:
+            return None
+        return [Issue(dimension=i["dimension"], description=i["description"]) for i in data]
+
+    @staticmethod
+    def _parse_requirement(data: Dict[str, Any]) -> RequirementResult:
+        return RequirementResult(
+            requirement_id=data["requirement_id"],
+            requirement=data["requirement"],
+            article=data["article"],
+            reference_url=data["reference_url"],
+            status=data["status"],
+            score=data["score"],
+            confidence=data["confidence"],
+            threshold=data["threshold"],
+            ai_specific=data["ai_specific"],
+            dimension_sources=data["dimension_sources"],
+            evaluation_method=data["evaluation_method"],
+            issue=data.get("issue"),
+            regulatory_deadline=data.get("regulatory_deadline"),
+            penalty_exposure=data.get("penalty_exposure"),
+        )
+
+    @staticmethod
+    def _parse_compliance_issue(data: Dict[str, Any]) -> ComplianceIssue:
+        return ComplianceIssue(
+            id=data["id"],
+            description=data["description"],
+            dimension=data["dimension"],
+            severity=data["severity"],
+            requirement=data["requirement"],
+            article=data["article"],
+            reference_url=data["reference_url"],
+            remediation_effort=data["remediation_effort"],
+            remediation_deadline_days=data.get("remediation_deadline_days"),
+            remediation_deadline_date=data.get("remediation_deadline_date"),
+        )
+
+    def _parse_compliance_result(self, data: Dict[str, Any]) -> ComplianceResult:
+        dim_scores = {}
+        for dim, info in data.get("dimension_scores", {}).items():
+            dim_scores[dim] = ComplianceDimensionScore(
+                score=info["score"],
+                confidence=info["confidence"],
+                explanation=info.get("explanation"),
+                issues=info.get("issues"),
+            )
+
+        risk_detail = None
+        if data.get("risk_classification_detail"):
+            rd = data["risk_classification_detail"]
+            risk_detail = RiskClassificationDetail(
+                tier=rd["tier"],
+                basis=rd["basis"],
+                obligations=rd.get("obligations"),
+            )
+
+        return ComplianceResult(
+            framework=data["framework"],
+            framework_version=data["framework_version"],
+            framework_url=data["framework_url"],
+            evaluated_at=data["evaluated_at"],
+            compliance_score=ComplianceScore(
+                score=data["compliance_score"]["score"],
+                confidence=data["compliance_score"]["confidence"],
+                label=data["compliance_score"]["label"],
+                summary=data["compliance_score"]["summary"],
+            ),
+            dimension_scores=dim_scores,
+            requirements_checked=data["requirements_checked"],
+            requirements_passed=data["requirements_passed"],
+            requirements_failed=data["requirements_failed"],
+            requirements_warned=data["requirements_warned"],
+            requirements=[self._parse_requirement(r) for r in data.get("requirements", [])],
+            issues=[self._parse_compliance_issue(i) for i in data.get("issues", [])],
+            improvement_suggestions=data.get("improvement_suggestions", []),
+            risk_classification_detail=risk_detail,
+            partial_result=data.get("partial_result", False),
+            from_cache=data.get("from_cache", False),
+            credits=data.get("_credits"),
+        )
+
+    # ------------------------------------------------------------------
+    # Evaluation
+    # ------------------------------------------------------------------
+
+    def eval(
         self,
         content: str,
+        mode: str = "basic",
+        dimensions: Optional[List[str]] = None,
+        weights: Optional[Dict[str, float]] = None,
+        context: Optional[str] = None,
         domain: str = "general",
-        explain_scores: bool = True,
-        source: Optional[str] = None,
-        model_preference: Optional[str] = None,
-        custom_weights: Optional[Dict[str, float]] = None,
-    ) -> RailScoreResponse:
-        """
-        Calculate RAIL score for content.
+        usecase: str = "general",
+        include_explanations: Optional[bool] = None,
+        include_issues: Optional[bool] = None,
+        include_suggestions: bool = False,
+    ) -> EvalResult:
+        """Evaluate content across RAIL dimensions.
+
+        Supports two modes:
+        - **basic**: Hybrid ML scoring (fast, cheaper).
+        - **deep**: LLM-as-Judge with per-dimension explanations.
 
         Args:
-            content: Text content to evaluate (20-50000 characters)
-            domain: Content domain (general, healthcare, law, hr, politics, news, finance)
-            explain_scores: Include detailed explanations for scores
-            source: Content source (chatgpt, gemini, claude, grok, custom, pasted)
-            model_preference: LLM preference (openai, gemini, both)
-            custom_weights: Custom dimension weights (must sum to 1.0)
+            content: Text to evaluate (10 – 10,000 characters).
+            mode: ``"basic"`` or ``"deep"``.
+            dimensions: Subset of dimensions to evaluate.  Valid values:
+                ``fairness``, ``safety``, ``reliability``, ``transparency``,
+                ``privacy``, ``accountability``, ``inclusivity``, ``user_impact``.
+                Defaults to all 8.
+            weights: Custom weights per dimension.  **Must sum to 100.**
+            context: Additional evaluation context
+                (e.g. ``"This is a medical chatbot response"``).
+            domain: ``general``, ``healthcare``, ``finance``, ``legal``,
+                ``education``, or ``code``.
+            usecase: ``general``, ``chatbot``, ``content_generation``,
+                ``summarization``, ``translation``, or ``code_generation``.
+            include_explanations: Include per-dimension text explanations.
+                Defaults to ``False`` for basic, ``True`` for deep.
+            include_issues: Include per-dimension issue lists.
+                Defaults to ``False`` for basic, ``True`` for deep.
+            include_suggestions: Include improvement suggestions for
+                low-scoring dimensions.
 
         Returns:
-            RailScoreResponse with score, grade, and dimension analysis
+            :class:`EvalResult` with scores and optional explanations.
 
         Raises:
-            RailScoreError: If API request fails
+            ValidationError: Invalid parameters.
+            AuthenticationError: Missing or invalid credentials.
+            InsufficientCreditsError: Not enough credits.
 
         Example:
-            >>> result = client.calculate(
-            ...     content="AI should prioritize human welfare.",
-            ...     domain='general'
+            >>> result = client.eval(
+            ...     content="Exercise improves cardiovascular health.",
+            ...     mode="basic",
             ... )
-            >>> print(f"Score: {result.rail_score}/10 ({result.grade})")
+            >>> print(result.rail_score.summary)
         """
-        payload = {
+        payload: Dict[str, Any] = {
             "content": content,
+            "mode": mode,
             "domain": domain,
-            "explain_scores": explain_scores,
+            "usecase": usecase,
+            "include_suggestions": include_suggestions,
         }
-
-        if source:
-            payload["source"] = source
-        if model_preference:
-            payload["model_preference"] = model_preference
-        if custom_weights:
-            payload["custom_weights"] = custom_weights
-
-        response = self._request("POST", "/api/v1/railscore/ui/calculate", json=payload)
-        data = response["data"]
-        metadata = response.get("metadata")
-
-        # Parse dimension scores
-        dimension_scores = {}
-        for dim, details in data["dimension_scores"].items():
-            dimension_scores[dim] = DimensionDetails(
-                score=details["score"],
-                grade=details["grade"],
-                explanation=details["explanation"],
-                suggestions=details["suggestions"],
-            )
-
-        # Parse overall analysis
-        overall_analysis = OverallAnalysis(
-            strengths=data["overall_analysis"]["strengths"],
-            weaknesses=data["overall_analysis"]["weaknesses"],
-            top_priority=data["overall_analysis"]["top_priority"],
-        )
-
-        # Parse evaluation metadata
-        eval_meta = data["evaluation_metadata"]
-        evaluation_metadata = EvaluationMetadata(
-            evaluation_time_ms=eval_meta["evaluation_time_ms"],
-            model_used=eval_meta["model_used"],
-            cached=eval_meta["cached"],
-            trace_id=eval_meta["trace_id"],
-            domain=eval_meta["domain"],
-            source=eval_meta.get("source"),
-        )
-
-        # Parse response metadata
-        response_metadata = None
-        if metadata:
-            response_metadata = ResponseMetadata(
-                credits_used=metadata["credits_used"],
-                credits_remaining=metadata["credits_remaining"],
-                trace_id=metadata["trace_id"],
-                tier=metadata["tier"],
-            )
-
-        return RailScoreResponse(
-            rail_score=data["rail_score"],
-            grade=data["grade"],
-            dimension_scores=dimension_scores,
-            overall_analysis=overall_analysis,
-            evaluation_metadata=evaluation_metadata,
-            metadata=response_metadata,
-        )
-
-    def generate(
-        self,
-        prompt: str,
-        length: str = "medium",
-        context: Optional[Dict[str, str]] = None,
-        model: str = "openai",
-        rail_requirements: Optional[Dict[str, Any]] = None,
-    ) -> GenerateResponse:
-        """
-        Generate content with RAIL checks.
-
-        Args:
-            prompt: Generation prompt
-            length: Content length (short, medium, long)
-            context: Context for generation (purpose, industry, target_audience, tone)
-            model: LLM model (openai, gemini)
-            rail_requirements: RAIL requirements for content
-
-        Returns:
-            GenerateResponse with content and RAIL scores
-
-        Example:
-            >>> result = client.generate(
-            ...     prompt="Write about AI ethics in healthcare",
-            ...     length="medium",
-            ...     context={"purpose": "blog_post", "tone": "professional"}
-            ... )
-            >>> print(result.content)
-        """
-        payload = {
-            "prompt": prompt,
-            "length": length,
-            "model": model,
-        }
-
-        if context:
+        if dimensions is not None:
+            payload["dimensions"] = dimensions
+        if weights is not None:
+            payload["weights"] = weights
+        if context is not None:
             payload["context"] = context
-        if rail_requirements:
-            payload["rail_requirements"] = rail_requirements
+        if include_explanations is not None:
+            payload["include_explanations"] = include_explanations
+        if include_issues is not None:
+            payload["include_issues"] = include_issues
 
-        response = self._request("POST", "/api/v1/railscore/ui/generate", json=payload)
-        data = response["data"]
-        metadata = response.get("metadata")
+        data = self._request("POST", "/railscore/v1/eval", json=payload)
+        result = data["result"]
 
-        # Parse generation metadata
-        gen_meta = data["generation_metadata"]
-        generation_metadata = GenerationMetadata(
-            model=gen_meta["model"],
-            attempts=gen_meta["attempts"],
-            generation_time_ms=gen_meta["generation_time_ms"],
+        return EvalResult(
+            rail_score=self._parse_rail_score(result["rail_score"]),
+            explanation=result.get("explanation", ""),
+            dimension_scores=self._parse_dimension_scores(result["dimension_scores"]),
+            issues=self._parse_issues(result.get("issues")),
+            improvement_suggestions=result.get("improvement_suggestions"),
+            from_cache=result.get("from_cache", False),
         )
 
-        # Parse RAIL scores
-        rail_data = data["rail_scores"]
-        rail_scores = RailScores(
-            rail_score=rail_data["rail_score"],
-            dimension_scores=rail_data["dimension_scores"],
-            requirements_met=rail_data["requirements_met"],
-            failed_requirements=rail_data["failed_requirements"],
-        )
+    # ------------------------------------------------------------------
+    # Protected content
+    # ------------------------------------------------------------------
 
-        # Parse response metadata
-        response_metadata = None
-        if metadata:
-            response_metadata = ResponseMetadata(
-                credits_used=metadata["credits_used"],
-                credits_remaining=metadata["credits_remaining"],
-                trace_id=metadata["trace_id"],
-                tier=metadata["tier"],
-            )
-
-        return GenerateResponse(
-            content=data["content"],
-            generation_metadata=generation_metadata,
-            rail_scores=rail_scores,
-            generation_history=data["generation_history"],
-            metadata=response_metadata,
-        )
-
-    def regenerate(
-        self,
-        original_content: str,
-        improve_dimensions: List[str],
-        user_notes: Optional[str] = None,
-        keep_structure: bool = True,
-        keep_tone: bool = True,
-    ) -> RegenerateResponse:
-        """
-        Regenerate content with improvements.
-
-        Args:
-            original_content: Original content to improve
-            improve_dimensions: RAIL dimensions to improve
-            user_notes: Additional improvement instructions
-            keep_structure: Keep original structure
-            keep_tone: Keep original tone
-
-        Returns:
-            RegenerateResponse with improved content
-
-        Example:
-            >>> result = client.regenerate(
-            ...     original_content="Original text here",
-            ...     improve_dimensions=["fairness", "safety"]
-            ... )
-            >>> print(result.content)
-        """
-        payload = {
-            "original_content": original_content,
-            "feedback": {
-                "improve_dimensions": improve_dimensions,
-                "keep_structure": keep_structure,
-                "keep_tone": keep_tone,
-            },
-        }
-
-        if user_notes:
-            payload["feedback"]["user_notes"] = user_notes
-
-        response = self._request(
-            "POST", "/api/v1/railscore/ui/regenerate", json=payload
-        )
-        data = response["data"]
-        metadata = response.get("metadata")
-
-        # Parse improvements
-        improvements = {}
-        for dim, details in data["improvements"].items():
-            improvements[dim] = ImprovementDetail(
-                before=details["before"],
-                after=details["after"],
-                improvement=details["improvement"],
-            )
-
-        # Parse response metadata
-        response_metadata = None
-        if metadata:
-            response_metadata = ResponseMetadata(
-                credits_used=metadata["credits_used"],
-                credits_remaining=metadata["credits_remaining"],
-                trace_id=metadata["trace_id"],
-                tier=metadata["tier"],
-            )
-
-        return RegenerateResponse(
-            content=data["content"],
-            improvements=improvements,
-            changes_made=data["changes_made"],
-            overall_scores=data["overall_scores"],
-            metadata=response_metadata,
-        )
-
-    def analyze_tone(
-        self,
-        sources: List[Dict[str, str]],
-        create_profile: bool = False,
-        profile_name: Optional[str] = None,
-    ) -> ToneAnalyzeResponse:
-        """
-        Analyze tone from sources.
-
-        Args:
-            sources: List of sources (type: url/text, value: content)
-            create_profile: Create reusable tone profile
-            profile_name: Name for the tone profile
-
-        Returns:
-            ToneAnalyzeResponse with tone profile
-
-        Example:
-            >>> result = client.analyze_tone(
-            ...     sources=[{"type": "url", "value": "https://example.com"}],
-            ...     create_profile=True,
-            ...     profile_name="Brand Voice"
-            ... )
-            >>> print(result.tone_profile.characteristics.formality)
-        """
-        payload = {
-            "sources": sources,
-            "create_profile": create_profile,
-        }
-
-        if profile_name:
-            payload["profile_name"] = profile_name
-
-        response = self._request(
-            "POST", "/api/v1/railscore/ui/tone/analyze", json=payload
-        )
-        data = response["data"]
-        metadata = response.get("metadata")
-
-        # Parse tone profile
-        profile_data = data["tone_profile"]
-        char_data = profile_data["characteristics"]
-
-        characteristics = ToneCharacteristics(
-            formality=char_data["formality"],
-            complexity=char_data["complexity"],
-            emotion=char_data["emotion"],
-            technical_level=char_data["technical_level"],
-            sentence_structure=char_data["sentence_structure"],
-            vocabulary_level=char_data["vocabulary_level"],
-            voice=char_data["voice"],
-            style_markers=char_data["style_markers"],
-        )
-
-        tone_profile = ToneProfile(
-            profile_id=profile_data["profile_id"],
-            name=profile_data["name"],
-            characteristics=characteristics,
-            created_at=profile_data["created_at"],
-        )
-
-        # Parse response metadata
-        response_metadata = None
-        if metadata:
-            response_metadata = ResponseMetadata(
-                credits_used=metadata["credits_used"],
-                credits_remaining=metadata["credits_remaining"],
-                trace_id=metadata["trace_id"],
-                tier=metadata["tier"],
-            )
-
-        return ToneAnalyzeResponse(
-            tone_profile=tone_profile,
-            metadata=response_metadata,
-        )
-
-    def match_tone(
+    def protected_evaluate(
         self,
         content: str,
-        tone_profile_id: Optional[str] = None,
-        tone_reference_urls: Optional[List[str]] = None,
-        adjustment_level: str = "moderate",
-    ) -> ToneMatchResponse:
-        """
-        Match content to tone profile.
+        threshold: float = 7.0,
+        mode: str = "basic",
+        user_query: Optional[str] = None,
+        llm_prompt: Optional[str] = None,
+        domain: str = "general",
+        usecase: str = "general",
+    ) -> ProtectedEvalResult:
+        """Evaluate content against a quality threshold.
+
+        If the content scores below the threshold, an improvement prompt
+        is returned that can be used to regenerate better content.
 
         Args:
-            content: Content to adjust
-            tone_profile_id: Previously created tone profile ID
-            tone_reference_urls: Reference URLs for tone
-            adjustment_level: Adjustment strength (subtle, moderate, strong)
+            content: AI-generated content (10 – 10,000 characters).
+            threshold: Minimum acceptable RAIL score (0.0 – 10.0).
+            mode: ``"basic"`` or ``"deep"``.
+            user_query: Original user query for context.
+            llm_prompt: Original LLM prompt used to generate the content.
+            domain: Content domain.
+            usecase: Use case category.
 
         Returns:
-            ToneMatchResponse with matched content
+            :class:`ProtectedEvalResult` with threshold status and optional
+            improvement prompt.
+
+        Raises:
+            ValidationError: Invalid parameters.
+            AuthenticationError: Missing or invalid credentials.
 
         Example:
-            >>> result = client.match_tone(
-            ...     content="Content to match",
-            ...     tone_profile_id="profile_123",
-            ...     adjustment_level="moderate"
+            >>> result = client.protected_evaluate(
+            ...     content="You should never trust anyone over 40.",
+            ...     threshold=7.0,
             ... )
-            >>> print(result.matched_content)
+            >>> if result.improvement_needed:
+            ...     print(result.improvement_prompt)
         """
-        payload = {
+        payload: Dict[str, Any] = {
             "content": content,
-            "adjustment_level": adjustment_level,
+            "action": "evaluate",
+            "threshold": threshold,
+            "mode": mode,
+            "domain": domain,
+            "usecase": usecase,
         }
+        if user_query is not None:
+            payload["user_query"] = user_query
+        if llm_prompt is not None:
+            payload["llm_prompt"] = llm_prompt
 
-        if tone_profile_id:
-            payload["tone_profile_id"] = tone_profile_id
-        if tone_reference_urls:
-            payload["tone_reference_urls"] = tone_reference_urls
+        data = self._request("POST", "/railscore/v1/protected", json=payload)
+        result = data["result"]
 
-        response = self._request(
-            "POST", "/api/v1/railscore/ui/tone/match", json=payload
-        )
-        data = response["data"]
-        metadata = response.get("metadata")
+        dim_scores = None
+        if "dimension_scores" in result:
+            dim_scores = self._parse_dimension_scores(result["dimension_scores"])
 
-        # Parse response metadata
-        response_metadata = None
-        if metadata:
-            response_metadata = ResponseMetadata(
-                credits_used=metadata["credits_used"],
-                credits_remaining=metadata["credits_remaining"],
-                trace_id=metadata["trace_id"],
-                tier=metadata["tier"],
-            )
-
-        return ToneMatchResponse(
-            matched_content=data["matched_content"],
-            match_score=data["match_score"],
-            adjustments_made=data["adjustments_made"],
-            comparison=data["comparison"],
-            metadata=response_metadata,
+        return ProtectedEvalResult(
+            rail_score=self._parse_rail_score(result["rail_score"]),
+            threshold_met=result["threshold_met"],
+            improvement_needed=result["improvement_needed"],
+            improvement_prompt=result.get("improvement_prompt"),
+            dimension_scores=dim_scores,
         )
 
-    def check_compliance(
+    def protected_regenerate(
         self,
         content: str,
-        framework: str,
-        **kwargs,
-    ) -> ComplianceResponse:
-        """
-        Check compliance against framework.
+        issues_to_fix: Optional[Dict[str, Any]] = None,
+        domain: str = "general",
+        usecase: str = "general",
+    ) -> ProtectedRegenerateResult:
+        """Regenerate improved content using the RAIL engine.
 
         Args:
-            content: Content to evaluate
-            framework: Compliance framework (gdpr, nist, hipaa, soc2)
-            **kwargs: Framework-specific options
+            content: Content to regenerate (10 – 10,000 characters).
+            issues_to_fix: Dict of ``dimension → {score, explanation, issues}``
+                describing what to fix.
+            domain: Content domain.
+            usecase: Use case category.
 
         Returns:
-            ComplianceResponse with compliance results
+            :class:`ProtectedRegenerateResult` with the improved content.
+
+        Raises:
+            ContentTooHarmfulError: Average issue score below 3.0.
+            ValidationError: Invalid parameters.
+            AuthenticationError: Missing or invalid credentials.
 
         Example:
-            >>> result = client.check_compliance(
-            ...     content="Privacy policy text",
-            ...     framework="gdpr"
+            >>> result = client.protected_regenerate(
+            ...     content="You should never trust anyone over 40.",
+            ...     issues_to_fix={
+            ...         "fairness": {
+            ...             "score": 2.0,
+            ...             "explanation": "Age-based stereotyping.",
+            ...             "issues": ["Age-based stereotyping"],
+            ...         }
+            ...     },
             ... )
-            >>> print(f"Status: {result.compliance_status}")
+            >>> print(result.improved_content)
         """
-        payload = {
+        payload: Dict[str, Any] = {
             "content": content,
-            **kwargs,
+            "action": "regenerate",
+            "domain": domain,
+            "usecase": usecase,
         }
+        if issues_to_fix is not None:
+            payload["issues_to_fix"] = issues_to_fix
 
-        response = self._request(
-            "POST", f"/api/v1/railscore/compliance/{framework}", json=payload
-        )
-        data = response["data"]
-        metadata = response.get("metadata")
+        data = self._request("POST", "/railscore/v1/protected", json=payload)
+        result = data["result"]
 
-        # Parse response metadata
-        response_metadata = None
-        if metadata:
-            response_metadata = ResponseMetadata(
-                credits_used=metadata["credits_used"],
-                credits_remaining=metadata["credits_remaining"],
-                trace_id=metadata["trace_id"],
-                tier=metadata["tier"],
+        meta = None
+        if "metadata" in result:
+            m = result["metadata"]
+            meta = RegenerateMetadata(
+                model=m["model"],
+                input_tokens=m["input_tokens"],
+                output_tokens=m["output_tokens"],
+                total_tokens=m.get("total_tokens"),
             )
 
-        return ComplianceResponse(
-            overall_score=data["overall_score"],
-            compliance_status=data["compliance_status"],
-            criteria_scores=data["criteria_scores"],
-            violations=data["violations"],
-            recommendations=data["recommendations"],
-            metadata=response_metadata,
+        return ProtectedRegenerateResult(
+            improved_content=result["improved_content"],
+            issues_addressed=result["issues_addressed"],
+            metadata=meta,
         )
 
-    def health(self) -> Dict[str, Any]:
-        """
-        Check API health status.
+    # ------------------------------------------------------------------
+    # Compliance
+    # ------------------------------------------------------------------
+
+    def compliance_check(
+        self,
+        content: str,
+        framework: Optional[str] = None,
+        frameworks: Optional[List[str]] = None,
+        context: Optional[Dict[str, Any]] = None,
+        strict_mode: bool = False,
+        include_explanations: bool = True,
+    ) -> Union[ComplianceResult, MultiComplianceResult]:
+        """Evaluate content against regulatory compliance frameworks.
+
+        Provide either ``framework`` (single) or ``frameworks`` (list of
+        up to 5).
+
+        Supported frameworks: ``gdpr``, ``ccpa``, ``hipaa``, ``eu_ai_act``,
+        ``india_dpdp``, ``india_ai_gov``.
+
+        Args:
+            content: Content to evaluate (max 50,000 characters).
+            framework: Single framework ID.
+            frameworks: List of framework IDs (max 5).
+            context: Evaluation context with optional keys:
+                ``domain``, ``system_type``, ``data_types``,
+                ``processing_purpose``, ``risk_indicators``, ``cross_border``.
+            strict_mode: Use 8.5 pass threshold instead of 7.0.
+            include_explanations: Include per-dimension explanations.
 
         Returns:
-            Health status response
+            :class:`ComplianceResult` for single framework, or
+            :class:`MultiComplianceResult` for multiple frameworks.
+
+        Raises:
+            ValidationError: Invalid or missing framework.
+            InsufficientTierError: Plan tier too low for the framework.
+            RateLimitError: Daily compliance check limit reached.
+            AuthenticationError: Missing or invalid credentials.
 
         Example:
-            >>> health = client.health()
-            >>> print(health["status"])
+            >>> result = client.compliance_check(
+            ...     content="Our AI processes browsing history...",
+            ...     framework="gdpr",
+            ...     context={"domain": "e-commerce"},
+            ... )
+            >>> print(result.compliance_score.summary)
         """
-        response = self._request("GET", "/healthz")
-        return response
+        if framework is None and frameworks is None:
+            raise ValueError("Either 'framework' or 'frameworks' must be provided.")
+        if framework is not None and frameworks is not None:
+            raise ValueError("Provide 'framework' or 'frameworks', not both.")
 
-    def version(self) -> Dict[str, str]:
-        """
-        Get API version information.
+        payload: Dict[str, Any] = {
+            "content": content,
+            "strict_mode": strict_mode,
+            "include_explanations": include_explanations,
+        }
+        if framework is not None:
+            resolved = self.FRAMEWORK_ALIASES.get(framework, framework)
+            payload["framework"] = resolved
+        if frameworks is not None:
+            payload["frameworks"] = [
+                self.FRAMEWORK_ALIASES.get(f, f) for f in frameworks
+            ]
+        if context is not None:
+            payload["context"] = context
+
+        data = self._request("POST", "/railscore/v1/compliance/check", json=payload)
+
+        # Multi-framework response
+        if "results" in data:
+            parsed_results = {}
+            for fw_key, fw_data in data["results"].items():
+                parsed_results[fw_key] = self._parse_compliance_result(fw_data)
+
+            summary_data = data["cross_framework_summary"]
+            summary = CrossFrameworkSummary(
+                frameworks_evaluated=summary_data["frameworks_evaluated"],
+                average_score=summary_data["average_score"],
+                weakest_framework=summary_data["weakest_framework"],
+                weakest_score=summary_data["weakest_score"],
+                credits=summary_data.get("_credits"),
+            )
+            return MultiComplianceResult(
+                results=parsed_results,
+                cross_framework_summary=summary,
+            )
+
+        # Single-framework response
+        return self._parse_compliance_result(data["result"])
+
+    # ------------------------------------------------------------------
+    # Utility
+    # ------------------------------------------------------------------
+
+    def health(self) -> HealthResponse:
+        """Check API health status.  No authentication required.
 
         Returns:
-            Version information
+            :class:`HealthResponse`.
 
         Example:
-            >>> version = client.version()
-            >>> print(version["version"])
+            >>> h = client.health()
+            >>> print(h.status)
         """
-        response = self._request("GET", "/version")
-        return response
+        data = self._request("GET", "/health", authenticated=False)
+        return HealthResponse(status=data["status"], service=data["service"])
+
+    def version(self) -> VersionResponse:
+        """Get API version information.  No authentication required.
+
+        Returns:
+            :class:`VersionResponse`.
+
+        Example:
+            >>> v = client.version()
+            >>> print(v.version)
+        """
+        data = self._request("GET", "/version", authenticated=False)
+        return VersionResponse(
+            version=data["version"],
+            api_version=data["api_version"],
+            optimizations=data.get("optimizations", {}),
+            models_available=data.get("models_available", []),
+        )
+

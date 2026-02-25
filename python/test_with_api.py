@@ -1,9 +1,8 @@
 """
-Comprehensive test script for Python SDK with live API.
+Live API test script for Python SDK v2.
 
-This script tests all SDK methods with your running API.
-By default, tests run against https://api.responsibleailabs.ai
-Set RAIL_BASE_URL environment variable to test against a different API endpoint.
+Tests all SDK methods against the running API.
+Set RAIL_API_KEY and optionally RAIL_BASE_URL environment variables.
 """
 
 import os
@@ -18,226 +17,315 @@ from rail_score_sdk import (
     RailScoreError,
     AuthenticationError,
     ValidationError,
+    ContentTooHarmfulError,
 )
 
 
 def print_section(title):
-    """Print a formatted section header"""
     print("\n" + "=" * 70)
     print(f"  {title}")
     print("=" * 70)
 
 
 def test_health_check(client):
-    """Test health check endpoint"""
     print_section("Testing Health Check")
     try:
         health = client.health()
-        print(f"✅ Health Status: {health.get('status', 'N/A')}")
+        print(f"  Health Status: {health.status}")
+        print(f"  Service: {health.service}")
         return True
     except Exception as e:
-        print(f"❌ Health check failed: {e}")
+        print(f"  Health check failed: {e}")
         return False
 
 
 def test_version(client):
-    """Test version endpoint"""
     print_section("Testing Version Endpoint")
     try:
         version = client.version()
-        print(f"✅ API Version: {version.get('version', 'N/A')}")
+        print(f"  API Version: {version.version} ({version.api_version})")
+        print(f"  Models: {', '.join(version.models_available)}")
         return True
     except Exception as e:
-        print(f"❌ Version check failed: {e}")
+        print(f"  Version check failed: {e}")
         return False
 
 
-def test_calculate(client):
-    """Test calculate endpoint"""
-    print_section("Testing Calculate RAIL Score")
+def test_eval_basic(client):
+    print_section("Testing Eval (Basic Mode)")
     try:
-        result = client.calculate(
-            content="AI should prioritize human welfare, be transparent, and ensure fairness for all stakeholders.",
-            domain='general',
-            explain_scores=True
+        result = client.eval(
+            content=(
+                "AI should prioritize human welfare, be transparent, "
+                "and ensure fairness for all stakeholders."
+            ),
+            mode="basic",
         )
 
-        print(f"✅ Calculation successful!")
-        print(f"   RAIL Score: {result.rail_score}/10")
-        print(f"   Grade: {result.grade}")
-        print(f"   Model Used: {result.evaluation_metadata.model_used}")
-        print(f"   Evaluation Time: {result.evaluation_metadata.evaluation_time_ms}ms")
-        print(f"   Cached: {result.evaluation_metadata.cached}")
+        print(f"  Score: {result.rail_score.score}/10")
+        print(f"  Confidence: {result.rail_score.confidence}")
+        print(f"  Summary: {result.rail_score.summary}")
+        print(f"  Cached: {result.from_cache}")
 
-        print("\n   Dimension Scores:")
-        for dim, details in result.dimension_scores.items():
-            print(f"      {dim}: {details.score}/10 ({details.grade})")
-
-        print("\n   Overall Analysis:")
-        print(f"      Strengths: {len(result.overall_analysis.strengths)} items")
-        if result.overall_analysis.strengths:
-            print(f"         - {result.overall_analysis.strengths[0]}")
-        print(f"      Weaknesses: {len(result.overall_analysis.weaknesses)} items")
-        if result.overall_analysis.weaknesses:
-            print(f"         - {result.overall_analysis.weaknesses[0]}")
-        print(f"      Top Priority: {result.overall_analysis.top_priority}")
+        print("\n  Dimension Scores:")
+        for dim, score in result.dimension_scores.items():
+            print(f"    {dim}: {score.score}/10 (confidence: {score.confidence})")
 
         return True
     except Exception as e:
-        print(f"❌ Calculate failed: {e}")
+        print(f"  Eval basic failed: {e}")
         import traceback
         traceback.print_exc()
         return False
 
 
-def test_generate(client):
-    """Test generate endpoint"""
-    print_section("Testing Content Generation")
+def test_eval_deep(client):
+    print_section("Testing Eval (Deep Mode)")
     try:
-        result = client.generate(
-            prompt="Write a short paragraph about responsible AI in healthcare",
-            length='short',
-            context={
-                'purpose': 'blog_post',
-                'industry': 'healthcare',
-                'tone': 'professional'
+        result = client.eval(
+            content=(
+                "Women are generally worse at math than men. "
+                "This is why STEM fields are dominated by males."
+            ),
+            mode="deep",
+            include_suggestions=True,
+        )
+
+        print(f"  Score: {result.rail_score.score}/10")
+        print(f"  Summary: {result.rail_score.summary}")
+
+        for dim, score in result.dimension_scores.items():
+            line = f"    {dim}: {score.score}/10"
+            if score.explanation:
+                line += f" — {score.explanation[:80]}..."
+            print(line)
+
+        if result.issues:
+            print(f"\n  Issues ({len(result.issues)}):")
+            for issue in result.issues[:5]:
+                print(f"    [{issue.dimension}] {issue.description}")
+
+        if result.improvement_suggestions:
+            print(f"\n  Suggestions:")
+            for s in result.improvement_suggestions[:3]:
+                print(f"    - {s[:80]}...")
+
+        return True
+    except Exception as e:
+        print(f"  Eval deep failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+def test_eval_dimensions(client):
+    print_section("Testing Eval (Specific Dimensions)")
+    try:
+        result = client.eval(
+            content="Take 500mg of ibuprofen every 4 hours for pain relief.",
+            mode="deep",
+            dimensions=["safety", "reliability"],
+            domain="healthcare",
+        )
+
+        print(f"  Score: {result.rail_score.score}/10")
+        print(f"  Dimensions returned: {list(result.dimension_scores.keys())}")
+        return True
+    except Exception as e:
+        print(f"  Eval dimensions failed: {e}")
+        return False
+
+
+def test_eval_weights(client):
+    print_section("Testing Eval (Custom Weights)")
+    try:
+        result = client.eval(
+            content="AI systems must prioritize fairness and safety above all.",
+            weights={
+                "fairness": 25, "safety": 25, "reliability": 15,
+                "transparency": 10, "privacy": 10, "accountability": 5,
+                "inclusivity": 5, "user_impact": 5,
             },
-            rail_requirements={
-                'minimum_scores': {
-                    'safety': 7.0,
-                    'reliability': 7.0
-                }
-            }
         )
 
-        print(f"✅ Generation successful!")
-        print(f"   Content length: {len(result.content)} characters")
-        print(f"   Content preview: {result.content[:100]}...")
-        print(f"   RAIL Score: {result.rail_scores.rail_score}/10")
-        print(f"   Model: {result.generation_metadata.model}")
-        print(f"   Attempts: {result.generation_metadata.attempts}")
-        print(f"   Generation Time: {result.generation_metadata.generation_time_ms}ms")
-        print(f"   Requirements Met: {result.rail_scores.requirements_met}")
-
+        print(f"  Score: {result.rail_score.score}/10")
         return True
     except Exception as e:
-        print(f"❌ Generate failed: {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"  Eval weights failed: {e}")
+        return False
+
+
+def test_protected_evaluate(client):
+    print_section("Testing Protected Evaluate")
+    try:
+        result = client.protected_evaluate(
+            content=(
+                "You should never trust anyone over 40 with "
+                "technology decisions."
+            ),
+            threshold=7.0,
+            mode="basic",
+        )
+
+        print(f"  Score: {result.rail_score.score}/10")
+        print(f"  Threshold met: {result.threshold_met}")
+        print(f"  Improvement needed: {result.improvement_needed}")
+        if result.improvement_prompt:
+            print(f"  Prompt preview: {result.improvement_prompt[:100]}...")
+        return True
+    except Exception as e:
+        print(f"  Protected evaluate failed: {e}")
+        return False
+
+
+def test_protected_regenerate(client):
+    print_section("Testing Protected Regenerate")
+    try:
+        result = client.protected_regenerate(
+            content=(
+                "You should never trust anyone over 40 with "
+                "technology decisions."
+            ),
+            issues_to_fix={
+                "fairness": {
+                    "score": 2.0,
+                    "explanation": "Age-based stereotyping.",
+                    "issues": ["Age-based stereotyping"],
+                }
+            },
+        )
+
+        print(f"  Improved: {result.improved_content[:100]}...")
+        print(f"  Issues addressed: {result.issues_addressed}")
+        if result.metadata:
+            print(f"  Model: {result.metadata.model}")
+        return True
+    except Exception as e:
+        print(f"  Protected regenerate failed: {e}")
+        return False
+
+
+def test_compliance_single(client):
+    print_section("Testing Compliance (Single Framework)")
+    try:
+        result = client.compliance_check(
+            content=(
+                "We collect user browsing history and purchase data "
+                "for personalized recommendations without explicit consent."
+            ),
+            framework="gdpr",
+            context={
+                "domain": "e-commerce",
+                "data_types": ["browsing_history", "purchase_data"],
+            },
+        )
+
+        cs = result.compliance_score
+        print(f"  Score: {cs.score}/10 ({cs.label})")
+        print(f"  Passed: {result.requirements_passed}/{result.requirements_checked}")
+        print(f"  Issues: {len(result.issues)}")
+        return True
+    except Exception as e:
+        print(f"  Compliance single failed: {e}")
+        return False
+
+
+def test_compliance_multi(client):
+    print_section("Testing Compliance (Multi-Framework)")
+    try:
+        result = client.compliance_check(
+            content=(
+                "We use cookies to track user behavior and sell profiles "
+                "to advertisers. Users can opt out via a footer link."
+            ),
+            frameworks=["gdpr", "ccpa"],
+        )
+
+        s = result.cross_framework_summary
+        print(f"  Frameworks: {s.frameworks_evaluated}")
+        print(f"  Average: {s.average_score}/10")
+        print(f"  Weakest: {s.weakest_framework} ({s.weakest_score}/10)")
+        return True
+    except Exception as e:
+        print(f"  Compliance multi failed: {e}")
         return False
 
 
 def test_error_handling(client):
-    """Test error handling"""
     print_section("Testing Error Handling")
 
-    # Test validation error
+    # Test validation error (content too short)
     try:
-        client.calculate(content="Short")  # Too short, should fail
-        print("❌ Should have raised ValidationError")
+        client.eval(content="Short")
+        print("  Should have raised ValidationError")
         return False
     except ValidationError as e:
-        print(f"✅ Validation error caught correctly: {e.message}")
+        print(f"  ValidationError caught: {e.message}")
     except Exception as e:
-        print(f"⚠️  Unexpected error type: {type(e).__name__}: {e}")
+        print(f"  Unexpected error: {type(e).__name__}: {e}")
 
     return True
 
 
-def test_custom_weights(client):
-    """Test custom dimension weights"""
-    print_section("Testing Custom Weights")
-    try:
-        result = client.calculate(
-            content="AI systems must prioritize fairness and safety above all else.",
-            domain='general',
-            custom_weights={
-                'fairness': 0.25,
-                'safety': 0.25,
-                'reliability': 0.15,
-                'transparency': 0.15,
-                'privacy': 0.05,
-                'accountability': 0.05,
-                'inclusivity': 0.05,
-                'user_impact': 0.05
-            }
-        )
-
-        print(f"✅ Custom weights calculation successful!")
-        print(f"   RAIL Score: {result.rail_score}/10")
-        print(f"   Grade: {result.grade}")
-
-        return True
-    except Exception as e:
-        print(f"❌ Custom weights test failed: {e}")
-        return False
-
-
 def main():
-    """Run all tests"""
     print("=" * 70)
-    print("  RAIL Score Python SDK - Live API Test Suite")
+    print("  RAIL Score Python SDK v2 — Live API Test Suite")
     print("=" * 70)
 
-    # Get API credentials
-    api_key = os.getenv('RAIL_API_KEY', 'test-api-key')
-    base_url = os.getenv('RAIL_BASE_URL', 'https://api.responsibleailabs.ai')
+    api_key = os.getenv("RAIL_API_KEY", "test-api-key")
+    base_url = os.getenv("RAIL_BASE_URL", "https://api.responsibleailabs.ai")
 
-    print(f"\nConfiguration:")
-    print(f"  API Key: {api_key[:8]}...")
+    print(f"\n  API Key: {api_key[:8]}...")
     print(f"  Base URL: {base_url}")
 
-    # Create client
-    print(f"\n🔧 Initializing SDK client...")
-    client = RailScoreClient(
-        api_key=api_key,
-        base_url=base_url,
-        timeout=60  # Longer timeout for generation
-    )
-    print(f"✅ Client created successfully")
+    client = RailScoreClient(api_key=api_key, base_url=base_url, timeout=60)
+    print(f"  Client initialized")
 
-    # Run tests
+    tests = [
+        ("health", test_health_check),
+        ("version", test_version),
+
+        ("eval_basic", test_eval_basic),
+        ("eval_deep", test_eval_deep),
+        ("eval_dimensions", test_eval_dimensions),
+        ("eval_weights", test_eval_weights),
+
+        ("protected_evaluate", test_protected_evaluate),
+        ("protected_regenerate", test_protected_regenerate),
+        ("compliance_single", test_compliance_single),
+        ("compliance_multi", test_compliance_multi),
+
+        ("error_handling", test_error_handling),
+    ]
+
     results = {}
-
-    results['health'] = test_health_check(client)
-    results['version'] = test_version(client)
-    results['calculate'] = test_calculate(client)
-    results['custom_weights'] = test_custom_weights(client)
-    results['generate'] = test_generate(client)
-    results['error_handling'] = test_error_handling(client)
+    for name, fn in tests:
+        results[name] = fn(client)
 
     # Summary
     print_section("Test Summary")
 
-    total_tests = len(results)
-    passed_tests = sum(1 for v in results.values() if v)
-    failed_tests = total_tests - passed_tests
+    total = len(results)
+    passed = sum(1 for v in results.values() if v)
+    failed = total - passed
 
-    for test_name, result in results.items():
-        status = "✅ PASS" if result else "❌ FAIL"
-        print(f"  {status}  {test_name}")
+    for name, result in results.items():
+        status = "PASS" if result else "FAIL"
+        print(f"  {status}  {name}")
 
-    print(f"\n  Total: {total_tests} tests")
-    print(f"  Passed: {passed_tests} tests")
-    print(f"  Failed: {failed_tests} tests")
+    print(f"\n  Total: {total} | Passed: {passed} | Failed: {failed}")
 
-    if failed_tests == 0:
-        print("\n🎉 All tests passed! SDK is working correctly.")
-        return 0
-    else:
-        print(f"\n⚠️  {failed_tests} test(s) failed. Check the errors above.")
-        return 1
+    return 0 if failed == 0 else 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
-        exit_code = main()
-        sys.exit(exit_code)
+        sys.exit(main())
     except KeyboardInterrupt:
-        print("\n\n⚠️  Tests interrupted by user")
+        print("\n\n  Interrupted.")
         sys.exit(1)
     except Exception as e:
-        print(f"\n\n❌ Fatal error: {e}")
+        print(f"\n\n  Fatal error: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
