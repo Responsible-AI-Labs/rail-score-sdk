@@ -7,9 +7,9 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="rail-score-sdk",
-    version="2.0.0",
-    author="Responsible AI Labs Team",
-    author_email="research@responsibleailabs.ai",
+    version="2.1.0",
+    author="Sumit Verma, Responsible AI Labs",
+    author_email="sumit@responsibleailabs.ai",
     description="Official Python SDK for RAIL Score API - Responsible AI Content Evaluation",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -32,6 +32,7 @@ setup(
     python_requires=">=3.8",
     install_requires=[
         "requests>=2.28.0",
+        "httpx>=0.27.0",
     ],
     extras_require={
         "dev": [
@@ -41,7 +42,19 @@ setup(
             "flake8>=5.0.0",
             "mypy>=0.990",
             "types-requests>=2.28.0",
-        ]
+        ],
+        "openai": ["openai>=1.0"],
+        "anthropic": ["anthropic>=0.30"],
+        "google": ["google-genai>=1.0"],
+        "langfuse": ["langfuse>=3.0"],
+        "litellm": ["litellm>=1.40"],
+        "integrations": [
+            "openai>=1.0",
+            "anthropic>=0.30",
+            "google-genai>=1.0",
+            "langfuse>=3.0",
+            "litellm>=1.40",
+        ],
     },
     keywords=[
         "rail",

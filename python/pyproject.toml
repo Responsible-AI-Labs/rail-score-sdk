@@ -4,16 +4,18 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rail-score-sdk"
-version = "2.0.0"
+version = "2.1.0"
 description = "Official Python SDK for RAIL Score API - Responsible AI Content Evaluation"
 readme = "README.md"
 requires-python = ">=3.8"
 license = "MIT"
 authors = [
-    {name = "Responsible AI Labs Team", email = "research@responsibleailabs.ai"}
+    {name = "Sumit Verma", email = "sumit@responsibleailabs.ai"},
+    {name = "Responsible AI Labs Team", email = "research@responsibleailabs.ai"},
 ]
 maintainers = [
-    {name = "Responsible AI Labs Team", email = "research@responsibleailabs.ai"}
+    {name = "Sumit Verma", email = "sumit@responsibleailabs.ai"},
+    {name = "Responsible AI Labs Team", email = "research@responsibleailabs.ai"},
 ]
 keywords = [
     "rail",
@@ -38,6 +40,7 @@ classifiers = [
 ]
 dependencies = [
     "requests>=2.28.0",
+    "httpx>=0.27.0",
 ]
 
 [project.optional-dependencies]
@@ -49,6 +52,18 @@ dev = [
     "mypy>=0.990",
     "types-requests>=2.28.0",
 ]
+openai = ["openai>=1.0"]
+anthropic = ["anthropic>=0.30"]
+google = ["google-genai>=1.0"]
+langfuse = ["langfuse>=3.0"]
+litellm = ["litellm>=1.40"]
+integrations = [
+    "openai>=1.0",
+    "anthropic>=0.30",
+    "google-genai>=1.0",
+    "langfuse>=3.0",
+    "litellm>=1.40",
+]
 
 [project.urls]
 Homepage = "https://github.com/RAILethicsHub/rail-score/tree/main/python"
@@ -59,7 +74,7 @@ Repository = "https://github.com/RAILethicsHub/rail-score"
 Changelog = "https://github.com/RAILethicsHub/rail-score/blob/main/python/CHANGELOG.md"
 
 [tool.setuptools]
-packages = ["rail_score_sdk"]
+packages = ["rail_score_sdk", "rail_score_sdk.integrations"]
 
 [tool.setuptools.package-data]
 rail_score_sdk = ["py.typed"]
