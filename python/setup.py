@@ -8,8 +8,8 @@ with open("README.md", "r", encoding="utf-8") as fh:
 setup(
     name="rail-score-sdk",
     version="2.0.0",
-    author="Responsible AI Labs Team",
-    author_email="research@responsibleailabs.ai",
+    author="Sumit Verma, Responsible AI Labs",
+    author_email="sumit@responsibleailabs.ai",
     description="Official Python SDK for RAIL Score API - Responsible AI Content Evaluation",
     long_description=long_description,
     long_description_content_type="text/markdown",

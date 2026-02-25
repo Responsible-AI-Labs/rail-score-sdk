@@ -10,10 +10,12 @@ readme = "README.md"
 requires-python = ">=3.8"
 license = "MIT"
 authors = [
-    {name = "Responsible AI Labs Team", email = "research@responsibleailabs.ai"}
+    {name = "Sumit Verma", email = "sumit@responsibleailabs.ai"},
+    {name = "Responsible AI Labs Team", email = "research@responsibleailabs.ai"},
 ]
 maintainers = [
-    {name = "Responsible AI Labs Team", email = "research@responsibleailabs.ai"}
+    {name = "Sumit Verma", email = "sumit@responsibleailabs.ai"},
+    {name = "Responsible AI Labs Team", email = "research@responsibleailabs.ai"},
 ]
 keywords = [
     "rail",
