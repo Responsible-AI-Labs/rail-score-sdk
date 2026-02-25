@@ -5,6 +5,24 @@ All notable changes to the RAIL Score Python SDK will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-02-25
+
+### Added
+- **AsyncRAILClient** — Non-blocking httpx-based client with in-memory caching and automatic retries
+- **PolicyEngine** — Configurable enforcement policies: `log_only`, `block`, `regenerate`, `custom`
+- **RAILSession** — Multi-turn conversation tracker with adaptive quality gating and context windowing
+- **RAILMiddleware** — Provider-agnostic pre/post hooks around any async LLM generate function
+- **RAILOpenAI** — Drop-in wrapper for `openai>=1.0` with automatic RAIL evaluation
+- **RAILAnthropic** — Drop-in wrapper for `anthropic>=0.30` with automatic RAIL evaluation
+- **RAILGemini** — Drop-in wrapper for `google-genai>=1.0` with automatic RAIL evaluation
+- **RAILLangfuse** — Pushes RAIL scores to Langfuse v3 traces as numeric scores
+- **RAILGuardrail** — LiteLLM custom guardrail with pre_call/post_call/during_call hooks
+- `RAILBlockedError` exception for policy-blocked content
+- `PolicyEvalResult` dataclass for policy enforcement results
+- `TurnRecord` dataclass for session history tracking
+- Optional dependency groups: `openai`, `anthropic`, `google`, `langfuse`, `litellm`, `integrations`
+- `httpx>=0.27.0` added as core dependency for async client
+
 ## [2.0.0] - 2026-02-25
 
 ### Breaking Changes
@@ -74,6 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[2.1.0]: https://github.com/RAILethicsHub/rail-score/releases/tag/v2.1.0
 [2.0.0]: https://github.com/RAILethicsHub/rail-score/releases/tag/v2.0.0
 [1.0.1]: https://github.com/RAILethicsHub/rail-score/releases/tag/v1.0.1
 [1.0.0]: https://github.com/RAILethicsHub/rail-score/releases/tag/v1.0.0
