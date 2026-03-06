@@ -51,10 +51,20 @@ class ValidationError(RailScoreError):
 
 
 class ContentTooHarmfulError(RailScoreError):
-    """Raised when content is too harmful to regenerate (422).
+    """Raised when content is critically unsafe (422).
 
-    The protected endpoint refuses to regenerate content with an
-    average issue score below 3.0.
+    The safe-regenerate endpoint refuses to regenerate content with an
+    average score below 3.0.  The ``response`` dict contains the
+    evaluation details and ``credits_consumed``.
+    """
+
+    pass
+
+
+class SessionExpiredError(RailScoreError):
+    """Raised when a safe-regenerate session has expired (410).
+
+    External-mode sessions expire after 15 minutes.
     """
 
     pass

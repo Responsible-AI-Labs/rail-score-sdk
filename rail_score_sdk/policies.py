@@ -5,7 +5,7 @@ crosses (or doesn't cross) the RAIL score threshold.
 Policies:
     - log_only   -> always pass through, just attach scores
     - block      -> raise RAILBlockedError if score < threshold
-    - regenerate -> call /protected/regenerate for improved content
+    - regenerate -> call /safe-regenerate for improved content
     - custom     -> call user-supplied async callback
 
 Usage:
@@ -171,23 +171,18 @@ class PolicyEngine:
         result: EvalResult,
         async_client: Any,
     ) -> EvalResult:
-        """Attempt regeneration via the protected endpoint."""
-        # Build issues_to_fix from low-scoring dimensions
-        issues_to_fix: Dict[str, Any] = {}
-        for dim_name, dim_data in result.dimension_scores.items():
-            dim_score = dim_data if isinstance(dim_data, (int, float)) else dim_data.get("score", 10)
-            if dim_score < self.threshold:
-                issues_to_fix[dim_name] = (
-                    dim_data if isinstance(dim_data, dict) else {"score": dim_score}
-                )
-
+        """Attempt regeneration via the safe-regenerate endpoint."""
         for attempt in range(self.regenerate_max_retries):
             try:
-                regen = await async_client.protected_regenerate(
+                regen = await async_client.safe_regenerate(
                     content=content,
-                    issues_to_fix=issues_to_fix if issues_to_fix else None,
+                    mode="basic",
+                    max_regenerations=1,
+                    regeneration_model="RAIL_Safe_LLM",
+                    thresholds={"overall": {"score": self.threshold}},
                 )
-                improved = regen.get("improved_content")
+                regen_result = regen.get("result", regen)
+                improved = regen_result.get("best_content")
                 if improved:
                     result.original_content = content
                     result.content = improved

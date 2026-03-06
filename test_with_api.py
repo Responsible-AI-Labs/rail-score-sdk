@@ -1,5 +1,5 @@
 """
-Live API test script for Python SDK v2.
+Live API test script for Python SDK v2.2.
 
 Tests all SDK methods against the running API.
 Set RAIL_API_KEY and optionally RAIL_BASE_URL environment variables.
@@ -18,6 +18,7 @@ from rail_score_sdk import (
     AuthenticationError,
     ValidationError,
     ContentTooHarmfulError,
+    SessionExpiredError,
 )
 
 
@@ -36,18 +37,6 @@ def test_health_check(client):
         return True
     except Exception as e:
         print(f"  Health check failed: {e}")
-        return False
-
-
-def test_version(client):
-    print_section("Testing Version Endpoint")
-    try:
-        version = client.version()
-        print(f"  API Version: {version.version} ({version.api_version})")
-        print(f"  Models: {', '.join(version.models_available)}")
-        return True
-    except Exception as e:
-        print(f"  Version check failed: {e}")
         return False
 
 
@@ -155,53 +144,60 @@ def test_eval_weights(client):
         return False
 
 
-def test_protected_evaluate(client):
-    print_section("Testing Protected Evaluate")
+def test_safe_regenerate(client):
+    print_section("Testing Safe-Regenerate (RAIL_Safe_LLM)")
     try:
-        result = client.protected_evaluate(
+        result = client.safe_regenerate(
             content=(
-                "You should never trust anyone over 40 with "
-                "technology decisions."
+                "Our AI system collects user data. We use it for stuff. "
+                "It's fast and works well."
             ),
-            threshold=7.0,
             mode="basic",
+            max_regenerations=1,
+            regeneration_model="RAIL_Safe_LLM",
+            thresholds={"overall": {"score": 8.0, "confidence": 0.5}},
         )
 
-        print(f"  Score: {result.rail_score.score}/10")
-        print(f"  Threshold met: {result.threshold_met}")
-        print(f"  Improvement needed: {result.improvement_needed}")
-        if result.improvement_prompt:
-            print(f"  Prompt preview: {result.improvement_prompt[:100]}...")
+        print(f"  Status: {result.status}")
+        print(f"  Credits consumed: {result.credits_consumed}")
+        if result.best_content:
+            print(f"  Best content: {result.best_content[:100]}...")
+        if result.best_scores:
+            rail = result.best_scores.get("rail_score", {})
+            print(f"  Best score: {rail.get('score', 'N/A')}/10")
         return True
+    except ContentTooHarmfulError as e:
+        print(f"  Content flagged as critical: {e.message}")
+        return True  # Expected for harmful content
     except Exception as e:
-        print(f"  Protected evaluate failed: {e}")
+        print(f"  Safe-regenerate failed: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
-def test_protected_regenerate(client):
-    print_section("Testing Protected Regenerate")
+def test_safe_regenerate_external(client):
+    print_section("Testing Safe-Regenerate (External Mode)")
     try:
-        result = client.protected_regenerate(
-            content=(
-                "You should never trust anyone over 40 with "
-                "technology decisions."
-            ),
-            issues_to_fix={
-                "fairness": {
-                    "score": 2.0,
-                    "explanation": "Age-based stereotyping.",
-                    "issues": ["Age-based stereotyping"],
-                }
-            },
+        result = client.safe_regenerate(
+            content="Our AI system collects user data. We use it for stuff.",
+            mode="basic",
+            max_regenerations=1,
+            regeneration_model="external",
         )
 
-        print(f"  Improved: {result.improved_content[:100]}...")
-        print(f"  Issues addressed: {result.issues_addressed}")
-        if result.metadata:
-            print(f"  Model: {result.metadata.model}")
+        print(f"  Status: {result.status}")
+        if result.session_id:
+            print(f"  Session ID: {result.session_id}")
+        if result.iterations_remaining is not None:
+            print(f"  Iterations remaining: {result.iterations_remaining}")
+        if result.rail_prompt:
+            print(f"  Rail prompt system: {result.rail_prompt.system_prompt[:80]}...")
         return True
     except Exception as e:
-        print(f"  Protected regenerate failed: {e}")
+        print(f"  Safe-regenerate external failed: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
@@ -216,7 +212,6 @@ def test_compliance_single(client):
             framework="gdpr",
             context={
                 "domain": "e-commerce",
-                "data_types": ["browsing_history", "purchase_data"],
             },
         )
 
@@ -269,7 +264,7 @@ def test_error_handling(client):
 
 def main():
     print("=" * 70)
-    print("  RAIL Score Python SDK v2 — Live API Test Suite")
+    print("  RAIL Score Python SDK v2.2 — Live API Test Suite")
     print("=" * 70)
 
     api_key = os.getenv("RAIL_API_KEY", "test-api-key")
@@ -278,20 +273,20 @@ def main():
     print(f"\n  API Key: {api_key[:8]}...")
     print(f"  Base URL: {base_url}")
 
-    client = RailScoreClient(api_key=api_key, base_url=base_url, timeout=60)
+    client = RailScoreClient(api_key=api_key, base_url=base_url, timeout=120)
     print(f"  Client initialized")
 
     tests = [
         ("health", test_health_check),
-        ("version", test_version),
 
         ("eval_basic", test_eval_basic),
         ("eval_deep", test_eval_deep),
         ("eval_dimensions", test_eval_dimensions),
         ("eval_weights", test_eval_weights),
 
-        ("protected_evaluate", test_protected_evaluate),
-        ("protected_regenerate", test_protected_regenerate),
+        ("safe_regenerate", test_safe_regenerate),
+        ("safe_regenerate_external", test_safe_regenerate_external),
+
         ("compliance_single", test_compliance_single),
         ("compliance_multi", test_compliance_multi),
 

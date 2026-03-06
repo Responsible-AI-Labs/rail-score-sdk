@@ -5,6 +5,38 @@ All notable changes to the RAIL Score Python SDK will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-03-07
+
+### Breaking Changes
+- **`protected_evaluate()` removed**: Replaced by `safe_regenerate()` with `RAIL_Safe_LLM` or `external` modes
+- **`protected_regenerate()` removed**: Use `safe_regenerate()` instead
+- **`explain()` removed**: Endpoint no longer available in the API
+- **`version()` removed**: Endpoint no longer available in the API
+- **Response models removed**: `ProtectedEvalResult`, `ProtectedRegenerateResult`, `RegenerateMetadata`, `ExplainResult`, `VersionResponse`, `ModelInfoResponse`
+
+### Added
+- `safe_regenerate()` — Evaluate and regenerate content in a single call with configurable thresholds
+  - `RAIL_Safe_LLM` mode: Server-side regeneration loop
+  - `external` mode: Client-orchestrated regeneration with session management
+- `safe_regenerate_continue()` — Continue an external-mode session with new regenerated content
+- `SafeRegenerateResult` model with iteration history, threshold tracking, and credits breakdown
+- `SessionExpiredError` exception for expired external-mode sessions (410 response)
+- `CriticalContentEvaluation` model for content too harmful to regenerate (422 response)
+- New response models: `IterationRecord`, `RailPrompt`, `SafeRegenerateMetadata`, `CreditsBreakdown`, `ThresholdDimensionResult`, `ThresholdsMet`
+- End-to-end chatbot examples: OpenAI, Gemini wrapper, Langfuse 3 integration
+
+### Changed
+- PolicyEngine `regenerate` mode now uses `safe_regenerate()` internally
+- Repository restructured: moved from `python/` subdirectory to root level
+- Updated all GitHub URLs to `https://github.com/Responsible-AI-Labs/rail-score-sdk`
+
+### Removed
+- `protected_evaluate()` — Use `safe_regenerate()` instead
+- `protected_regenerate()` — Use `safe_regenerate()` instead
+- `explain()` — No replacement (endpoint removed from API)
+- `version()` — No replacement (endpoint removed from API)
+- Old response models: `ProtectedEvalResult`, `ProtectedRegenerateResult`, `RegenerateMetadata`, `ExplainResult`, `VersionResponse`, `ModelInfoResponse`
+
 ## [2.1.1] - 2026-02-25
 
 ### Fixed
@@ -101,8 +133,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[2.1.1]: https://github.com/RAILethicsHub/rail-score/releases/tag/v2.1.1
-[2.1.0]: https://github.com/RAILethicsHub/rail-score/releases/tag/v2.1.0
-[2.0.0]: https://github.com/RAILethicsHub/rail-score/releases/tag/v2.0.0
-[1.0.1]: https://github.com/RAILethicsHub/rail-score/releases/tag/v1.0.1
-[1.0.0]: https://github.com/RAILethicsHub/rail-score/releases/tag/v1.0.0
+[2.2.0]: https://github.com/Responsible-AI-Labs/rail-score-sdk/releases/tag/v2.2.0
+[2.1.1]: https://github.com/Responsible-AI-Labs/rail-score-sdk/releases/tag/v2.1.1
+[2.1.0]: https://github.com/Responsible-AI-Labs/rail-score-sdk/releases/tag/v2.1.0
+[2.0.0]: https://github.com/Responsible-AI-Labs/rail-score-sdk/releases/tag/v2.0.0
+[1.0.1]: https://github.com/Responsible-AI-Labs/rail-score-sdk/releases/tag/v1.0.1
+[1.0.0]: https://github.com/Responsible-AI-Labs/rail-score-sdk/releases/tag/v1.0.0

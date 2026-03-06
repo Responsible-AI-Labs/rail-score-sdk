@@ -21,7 +21,7 @@ LLM provider wrappers:
     >>> from rail_score_sdk.integrations import RAILOpenAI, RAILAnthropic, RAILGemini
 """
 
-# Sync client (v2 — requests-based)
+# Sync client (v2 -- requests-based)
 from .client import RailScoreClient
 
 # Async client (httpx-based)
@@ -43,9 +43,12 @@ from .models import (
     DimensionScore,
     Issue,
     EvalResult,
-    ProtectedEvalResult,
-    ProtectedRegenerateResult,
-    RegenerateMetadata,
+    SafeRegenerateResult,
+    SafeRegenerateMetadata,
+    CreditsBreakdown,
+    IterationRecord,
+    RailPrompt,
+    CriticalContentEvaluation,
     ComplianceScore,
     ComplianceDimensionScore,
     RequirementResult,
@@ -55,7 +58,6 @@ from .models import (
     CrossFrameworkSummary,
     MultiComplianceResult,
     HealthResponse,
-    VersionResponse,
 )
 
 # Exceptions
@@ -66,13 +68,14 @@ from .exceptions import (
     InsufficientTierError,
     ValidationError,
     ContentTooHarmfulError,
+    SessionExpiredError,
     RateLimitError,
     EvaluationFailedError,
     NotImplementedByServerError,
     ServiceUnavailableError,
 )
 
-__version__ = "2.1.1"
+__version__ = "2.2.0"
 __all__ = [
     # Sync client
     "RailScoreClient",
@@ -93,10 +96,13 @@ __all__ = [
     "DimensionScore",
     "Issue",
     "EvalResult",
-    # Protected models
-    "ProtectedEvalResult",
-    "ProtectedRegenerateResult",
-    "RegenerateMetadata",
+    # Safe-Regenerate models
+    "SafeRegenerateResult",
+    "SafeRegenerateMetadata",
+    "CreditsBreakdown",
+    "IterationRecord",
+    "RailPrompt",
+    "CriticalContentEvaluation",
     # Compliance models
     "ComplianceScore",
     "ComplianceDimensionScore",
@@ -108,7 +114,6 @@ __all__ = [
     "MultiComplianceResult",
     # Utility models
     "HealthResponse",
-    "VersionResponse",
     # Exceptions
     "RailScoreError",
     "AuthenticationError",
@@ -116,6 +121,7 @@ __all__ = [
     "InsufficientTierError",
     "ValidationError",
     "ContentTooHarmfulError",
+    "SessionExpiredError",
     "RateLimitError",
     "EvaluationFailedError",
     "NotImplementedByServerError",

@@ -40,8 +40,8 @@ This project adheres to a code of conduct. By participating, you are expected to
 
 ```bash
 # Clone your fork
-git clone https://github.com/YOUR_USERNAME/sdks.git
-cd sdks/python
+git clone https://github.com/YOUR_USERNAME/rail-score-sdk.git
+cd rail-score-sdk
 
 # Create a virtual environment
 python -m venv venv
@@ -315,7 +315,7 @@ If you have questions or need help:
 
 - Email: research@responsibleailabs.ai
 - Discord: [Join our community](https://responsibleailabs.ai/discord)
-- GitHub Issues: [Create an issue](https://github.com/RAILethicsHub/sdks/python/issues)
+- GitHub Issues: [Create an issue](https://github.com/Responsible-AI-Labs/rail-score-sdk/issues)
 
 ## License
 
