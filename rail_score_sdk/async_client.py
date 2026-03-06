@@ -156,54 +156,58 @@ class AsyncRAILClient:
         self._set_cached(cache_key, result)
         return result
 
-    async def protected_evaluate(
+    async def safe_regenerate(
         self,
         content: str,
         *,
-        threshold: float = 7.0,
         mode: str = "basic",
-        user_query: str = "",
-        llm_prompt: str = "",
+        max_regenerations: int = 3,
+        regeneration_model: str = "RAIL_Safe_LLM",
+        thresholds: Optional[Dict[str, Any]] = None,
+        context: str = "",
         domain: str = "general",
         usecase: str = "general",
+        user_query: str = "",
+        weights: Optional[Dict[str, float]] = None,
+        policy_hint: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
-        """POST /railscore/v1/protected (action=evaluate)"""
+        """POST /railscore/v1/safe-regenerate"""
         payload: Dict[str, Any] = {
             "content": content,
-            "action": "evaluate",
-            "threshold": threshold,
             "mode": mode,
+            "max_regenerations": max_regenerations,
+            "regeneration_model": regeneration_model,
             "domain": domain,
             "usecase": usecase,
         }
+        if thresholds:
+            payload["thresholds"] = thresholds
+        if context:
+            payload["context"] = context
         if user_query:
             payload["user_query"] = user_query
-        if llm_prompt:
-            payload["llm_prompt"] = llm_prompt
+        if weights:
+            payload["weights"] = weights
+        if policy_hint:
+            payload["policy_hint"] = policy_hint
 
-        data = await self._request("POST", "/railscore/v1/protected", payload)
-        return data.get("result", data)
+        data = await self._request("POST", "/railscore/v1/safe-regenerate", payload)
+        return data
 
-    async def protected_regenerate(
+    async def safe_regenerate_continue(
         self,
-        content: str,
-        *,
-        issues_to_fix: Optional[Dict[str, Any]] = None,
-        domain: str = "general",
-        usecase: str = "general",
+        session_id: str,
+        regenerated_content: str,
     ) -> Dict[str, Any]:
-        """POST /railscore/v1/protected (action=regenerate)"""
-        payload: Dict[str, Any] = {
-            "content": content,
-            "action": "regenerate",
-            "domain": domain,
-            "usecase": usecase,
+        """POST /railscore/v1/safe-regenerate/continue"""
+        payload = {
+            "session_id": session_id,
+            "regenerated_content": regenerated_content,
         }
-        if issues_to_fix:
-            payload["issues_to_fix"] = issues_to_fix
-
-        data = await self._request("POST", "/railscore/v1/protected", payload)
-        return data.get("result", data)
+        data = await self._request(
+            "POST", "/railscore/v1/safe-regenerate/continue", payload
+        )
+        return data
 
     async def compliance_check(
         self,
@@ -225,14 +229,6 @@ class AsyncRAILClient:
 
         data = await self._request("POST", "/railscore/v1/compliance/check", payload)
         return data.get("result", data.get("results", data))
-
-    async def explain(
-        self, content: str, scores: Dict[str, float]
-    ) -> Dict[str, str]:
-        """POST /railscore/v1/explain"""
-        payload = {"content": content, "scores": scores}
-        data = await self._request("POST", "/railscore/v1/explain", payload)
-        return data.get("explanations", data)
 
     async def health(self) -> Dict[str, str]:
         """GET /health"""

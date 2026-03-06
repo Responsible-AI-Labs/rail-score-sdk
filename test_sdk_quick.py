@@ -1,4 +1,4 @@
-"""Quick test script for Python SDK v2"""
+"""Quick test script for Python SDK v2.2"""
 
 import sys
 import os
@@ -28,7 +28,7 @@ def test_client_creation():
 
 
 def test_imports():
-    """Test that all v2 components can be imported"""
+    """Test that all v2.2 components can be imported"""
     print("\nTesting imports...")
 
     from rail_score_sdk import (
@@ -39,10 +39,13 @@ def test_imports():
         DimensionScore,
         Issue,
         EvalResult,
-        # Protected models
-        ProtectedEvalResult,
-        ProtectedRegenerateResult,
-        RegenerateMetadata,
+        # Safe-Regenerate models
+        SafeRegenerateResult,
+        SafeRegenerateMetadata,
+        CreditsBreakdown,
+        IterationRecord,
+        RailPrompt,
+        CriticalContentEvaluation,
         # Compliance models
         ComplianceScore,
         ComplianceDimensionScore,
@@ -54,7 +57,6 @@ def test_imports():
         MultiComplianceResult,
         # Utility models
         HealthResponse,
-        VersionResponse,
         # Exceptions
         RailScoreError,
         AuthenticationError,
@@ -62,6 +64,7 @@ def test_imports():
         InsufficientTierError,
         ValidationError,
         ContentTooHarmfulError,
+        SessionExpiredError,
         RateLimitError,
         EvaluationFailedError,
         NotImplementedByServerError,
@@ -76,12 +79,15 @@ def test_imports():
         "DimensionScore",
         "Issue",
         "EvalResult",
-        "ProtectedEvalResult",
-        "ProtectedRegenerateResult",
+        "SafeRegenerateResult",
+        "SafeRegenerateMetadata",
+        "CreditsBreakdown",
+        "IterationRecord",
+        "RailPrompt",
         "ComplianceResult",
         "MultiComplianceResult",
         "HealthResponse",
-        "VersionResponse",
+        "SessionExpiredError",
         "RailScoreError",
         "AuthenticationError",
         "InsufficientCreditsError",
@@ -95,34 +101,38 @@ def test_imports():
 
 
 def test_methods_exist():
-    """Test that all v2 methods exist on the client"""
+    """Test that all v2.2 methods exist on the client"""
     print("\nTesting methods...")
 
     client = RailScoreClient(api_key="test-key")
 
     methods = [
         "eval",
-        "protected_evaluate",
-        "protected_regenerate",
+        "safe_regenerate",
+        "safe_regenerate_continue",
         "compliance_check",
         "health",
-        "version",
     ]
 
     for method in methods:
         assert hasattr(client, method), f"Method {method} not found"
         print(f"   {method}()")
 
-    print("  All methods exist")
+    # Verify removed methods are gone
+    removed = ["protected_evaluate", "protected_regenerate", "version"]
+    for method in removed:
+        assert not hasattr(client, method), f"Method {method} should be removed"
+
+    print("  All methods exist, removed methods gone")
 
 
 def test_version():
-    """Test version is 2.0.0"""
+    """Test version is 2.2.0"""
     print("\nTesting version...")
 
     from rail_score_sdk import __version__
 
-    assert __version__ == "2.0.0", f"Expected 2.0.0, got {__version__}"
+    assert __version__ == "2.2.0", f"Expected 2.2.0, got {__version__}"
     print(f"  Version: {__version__}")
 
 
@@ -153,7 +163,7 @@ def test_class_constants():
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("RAIL Score Python SDK v2 - Quick Test")
+    print("RAIL Score Python SDK v2.2 - Quick Test")
     print("=" * 60)
 
     try:
@@ -166,7 +176,7 @@ if __name__ == "__main__":
         print("\n" + "=" * 60)
         print("ALL TESTS PASSED!")
         print("=" * 60)
-        print("\nPython SDK v2 is ready to use!")
+        print("\nPython SDK v2.2 is ready to use!")
 
     except Exception as e:
         print(f"\nTest failed: {e}")

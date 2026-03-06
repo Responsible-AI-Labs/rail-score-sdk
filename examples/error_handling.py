@@ -1,5 +1,5 @@
 """
-Error handling example for RAIL Score Python SDK v2.
+Error handling example for RAIL Score Python SDK v2.2.
 
 Demonstrates how to properly handle the different types of errors
 that may occur when using the RAIL Score API.
@@ -14,6 +14,7 @@ from rail_score_sdk import (
     InsufficientTierError,
     ValidationError,
     ContentTooHarmfulError,
+    SessionExpiredError,
     RateLimitError,
     EvaluationFailedError,
     ServiceUnavailableError,
@@ -88,21 +89,34 @@ except InsufficientTierError as e:
     print("  Fix: Upgrade your plan for access to this framework.")
 
 
-# --- Example 5: Content Too Harmful ---
+# --- Example 5: Content Too Harmful (safe-regenerate) ---
 print("\n\nExample 5: Handling Content Too Harmful")
 print("-" * 70)
 
 try:
-    client.protected_regenerate(
+    client.safe_regenerate(
         content="Some severely problematic content here for testing.",
-        issues_to_fix={
-            "safety": {"score": 1.0, "explanation": "Harmful content", "issues": []},
-            "fairness": {"score": 1.0, "explanation": "Discriminatory", "issues": []},
-        },
+        max_regenerations=1,
     )
 except ContentTooHarmfulError as e:
     print(f"  Content too harmful to regenerate: {e.message}")
     print("  The API refuses to regenerate content with avg score < 3.0.")
+    if e.response:
+        print(f"  Credits consumed: {e.response.get('credits_consumed', 'N/A')}")
+
+
+# --- Example 5b: Session Expired (safe-regenerate external mode) ---
+print("\n\nExample 5b: Handling Session Expired")
+print("-" * 70)
+
+try:
+    client.safe_regenerate_continue(
+        session_id="sr_expired_session_id",
+        regenerated_content="Some improved content.",
+    )
+except SessionExpiredError as e:
+    print(f"  Session expired: {e.message}")
+    print("  External-mode sessions expire after 15 minutes.")
 
 
 # --- Example 6: Rate Limiting with Retry ---

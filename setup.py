@@ -7,13 +7,13 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="rail-score-sdk",
-    version="2.1.1",
+    version="2.2.0",
     author="Sumit Verma, Responsible AI Labs",
     author_email="sumit@responsibleailabs.ai",
     description="Official Python SDK for RAIL Score API - Responsible AI Content Evaluation",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/RAILethicsHub/rail-score/tree/main/python",
+    url="https://github.com/Responsible-AI-Labs/rail-score-sdk",
     packages=find_packages(exclude=["tests", "tests.*", "examples", "*.tests", "*.tests.*"]),
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -65,10 +65,10 @@ setup(
         "content-moderation",
     ],
     project_urls={
-        "Documentation": "https://responsibleailabs.ai/developer/docs",
-        "API Reference": "https://responsibleailabs.ai/developers/api-ref",
-        "Source": "https://github.com/RAILethicsHub/rail-score/tree/main/python",
-        "Bug Reports": "https://github.com/RAILethicsHub/rail-score/issues",
-        "Changelog": "https://github.com/RAILethicsHub/rail-score/blob/main/python/CHANGELOG.md",
+        "Documentation": "https://responsibleailabs.ai/developer/quickstart",
+        "API Reference": "https://responsibleailabs.ai/developer/api-reference",
+        "Source": "https://github.com/Responsible-AI-Labs/rail-score-sdk",
+        "Bug Reports": "https://github.com/Responsible-AI-Labs/rail-score-sdk/issues",
+        "Changelog": "https://github.com/Responsible-AI-Labs/rail-score-sdk/blob/main/CHANGELOG.md",
     },
 )

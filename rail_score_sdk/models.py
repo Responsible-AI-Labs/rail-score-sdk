@@ -1,4 +1,4 @@
-"""Data models for RAIL Score SDK v2."""
+"""Data models for RAIL Score SDK v2.2."""
 
 from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional
@@ -22,8 +22,8 @@ class RailScore:
 class DimensionScore:
     """Per-dimension score returned by the evaluation endpoint.
 
-    ``explanation`` and ``issues`` are only populated when requested
-    via ``include_explanations`` / ``include_issues``.
+    ``explanation`` and ``issues`` are only populated in deep mode
+    or when requested via ``include_explanations`` / ``include_issues``.
     """
 
     score: float
@@ -53,38 +53,112 @@ class EvalResult:
 
 
 # ---------------------------------------------------------------------------
-# Protected content models (/railscore/v1/protected)
+# Safe-Regenerate models (/railscore/v1/safe-regenerate)
 # ---------------------------------------------------------------------------
 
 
 @dataclass
-class ProtectedEvalResult:
-    """Result from protected endpoint with ``action='evaluate'``."""
+class ThresholdDimensionResult:
+    """Per-dimension threshold evaluation result."""
+
+    score: float
+    threshold: float
+    confidence: float
+    confidence_threshold: float
+    passed: bool
+    required: bool
+
+
+@dataclass
+class ThresholdsMet:
+    """Threshold evaluation summary."""
+
+    overall_passed: bool
+    all_passed: bool
+    all_required_passed: Optional[bool] = None
+    dimension_failures_count: Optional[int] = None
+    dimension_results: Optional[Dict[str, ThresholdDimensionResult]] = None
+
+
+@dataclass
+class IterationRecord:
+    """Record of a single safe-regenerate iteration."""
+
+    iteration: int
+    content: str
+    scores: Optional[Dict[str, Any]] = None
+    thresholds_met: Optional[bool] = None
+    failing_dimensions: Optional[List[str]] = None
+    improvement_from_previous: Optional[float] = None
+    latency_ms: Optional[float] = None
+    rail_prompt: Optional[Any] = None
+    regeneration_model: Optional[str] = None
+
+
+@dataclass
+class RailPrompt:
+    """Prompt returned in external mode for client-side regeneration."""
+
+    system_prompt: str
+    user_prompt: str
+    temperature: Optional[float] = None
+
+
+@dataclass
+class SafeRegenerateMetadata:
+    """Metadata for a safe-regenerate response."""
+
+    req_id: str
+    mode: str
+    total_iterations: Optional[int] = None
+    total_latency_ms: Optional[float] = None
+
+
+@dataclass
+class CreditsBreakdown:
+    """Breakdown of credits consumed during safe-regenerate."""
+
+    evaluations: float
+    regenerations: float
+    total: float
+
+
+@dataclass
+class SafeRegenerateResult:
+    """Result from ``/railscore/v1/safe-regenerate``.
+
+    The shape varies by ``status``:
+    - ``"passed"`` / ``"max_iterations_reached"``: contains ``best_content``
+      and ``iteration_history``.
+    - ``"awaiting_regeneration"`` (external mode): contains ``session_id``
+      and ``rail_prompt``.
+    """
+
+    status: str
+    original_content: str
+    credits_consumed: float
+    metadata: Optional[SafeRegenerateMetadata] = None
+    credits_breakdown: Optional[CreditsBreakdown] = None
+    # Present when status is passed / max_iterations_reached
+    best_content: Optional[str] = None
+    best_iteration: Optional[int] = None
+    best_scores: Optional[Dict[str, Any]] = None
+    iteration_history: Optional[List[IterationRecord]] = None
+    # Present when status is awaiting_regeneration (external mode)
+    session_id: Optional[str] = None
+    iteration: Optional[int] = None
+    iterations_remaining: Optional[int] = None
+    current_scores: Optional[Dict[str, Any]] = None
+    rail_prompt: Optional[RailPrompt] = None
+
+
+@dataclass
+class CriticalContentEvaluation:
+    """Evaluation returned when content is flagged as critically unsafe (422)."""
 
     rail_score: RailScore
-    threshold_met: bool
-    improvement_needed: bool
-    improvement_prompt: Optional[str] = None
-    dimension_scores: Optional[Dict[str, DimensionScore]] = None
-
-
-@dataclass
-class RegenerateMetadata:
-    """Metadata for a regeneration response."""
-
-    model: str
-    input_tokens: int
-    output_tokens: int
-    total_tokens: Optional[int] = None
-
-
-@dataclass
-class ProtectedRegenerateResult:
-    """Result from protected endpoint with ``action='regenerate'``."""
-
-    improved_content: str
-    issues_addressed: List[str]
-    metadata: Optional[RegenerateMetadata] = None
+    dimension_scores: Dict[str, DimensionScore]
+    failing_dimensions: List[str]
 
 
 # ---------------------------------------------------------------------------
@@ -200,18 +274,6 @@ class MultiComplianceResult:
 
 
 # ---------------------------------------------------------------------------
-# Explanation models (/railscore/v1/explain)
-# ---------------------------------------------------------------------------
-
-
-@dataclass
-class ExplainResult:
-    """Result from the ``/railscore/v1/explain`` endpoint."""
-
-    explanations: Dict[str, str]
-
-
-# ---------------------------------------------------------------------------
 # Utility models
 # ---------------------------------------------------------------------------
 
@@ -222,23 +284,3 @@ class HealthResponse:
 
     status: str
     service: str
-
-
-@dataclass
-class VersionResponse:
-    """Response from ``/version``."""
-
-    version: str
-    api_version: str
-    optimizations: Dict[str, bool]
-    models_available: List[str]
-
-
-@dataclass
-class ModelInfoResponse:
-    """Response from ``/railscore/v1/model/info``."""
-
-    endpoints: Dict[str, Any]
-    modes: Dict[str, Any]
-    native_model: Dict[str, Any]
-    explanation_generator: Dict[str, Any]

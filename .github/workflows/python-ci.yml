@@ -4,17 +4,21 @@ on:
   push:
     branches: [ main, develop, python/** ]
     paths:
-      - 'python/**'
+      - 'rail_score_sdk/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - 'setup.py'
+      - 'requirements*.txt'
       - '.github/workflows/python-ci.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
-      - 'python/**'
+      - 'rail_score_sdk/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - 'setup.py'
+      - 'requirements*.txt'
       - '.github/workflows/python-ci.yml'
-
-defaults:
-  run:
-    working-directory: python
 
 jobs:
   lint:
@@ -33,7 +37,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('python/requirements-dev.txt') }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements-dev.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
 
@@ -55,7 +59,7 @@ jobs:
 
     - name: Type check with mypy
       run: |
-        mypy rail_score_sdk --config-file=../pyproject.toml || true
+        mypy rail_score_sdk || true
 
   test:
     name: Test Python ${{ matrix.python-version }}
@@ -78,7 +82,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('python/requirements*.txt') }}
+        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('requirements*.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-${{ matrix.python-version }}-
           ${{ runner.os }}-pip-
@@ -96,7 +100,7 @@ jobs:
     - name: Test package installation
       run: |
         pip install -e .
-        python -c "from rail_score_sdk import RailScoreClient; print('✓ Package imports successfully')"
+        python -c "from rail_score_sdk import RailScoreClient; print('Package imports successfully')"
 
   build:
     name: Build Distribution
@@ -128,7 +132,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: dist-packages
-        path: python/dist/
+        path: dist/
         retention-days: 7
 
   security:

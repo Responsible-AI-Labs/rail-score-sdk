@@ -29,7 +29,6 @@ Before deploying, ensure you have:
 ### 1. Clean Previous Builds
 
 ```bash
-cd python
 rm -rf build dist *.egg-info
 ```
 
@@ -96,9 +95,9 @@ python -c "from rail_score_sdk import RailScoreClient, __version__; print(f'Vers
 
 ### 7. Create GitHub Release
 
-1. Go to: https://github.com/RAILethicsHub/sdks/releases/new
-2. Tag version: `python/v1.0.0`
-3. Release title: `Python SDK v1.0.0`
+1. Go to: https://github.com/Responsible-AI-Labs/rail-score-sdk/releases/new
+2. Tag version: `v2.2.0`
+3. Release title: `v2.2.0`
 4. Description: Copy from CHANGELOG.md
 5. Attach distribution files from `dist/`
 6. Publish release
@@ -119,7 +118,7 @@ The repository includes GitHub Actions workflows for automated deployment:
 
 Trigger deployment manually:
 
-1. Go to: https://github.com/RAILethicsHub/sdks/actions
+1. Go to: https://github.com/Responsible-AI-Labs/rail-score-sdk/actions
 2. Select "Publish Python Package"
 3. Click "Run workflow"
 4. Choose environment (testpypi or pypi)
@@ -267,7 +266,7 @@ PyPI doesn't support deleting or replacing releases. If you need to rollback:
 For deployment issues or questions:
 
 - Email: research@responsibleailabs.ai
-- GitHub Issues: https://github.com/RAILethicsHub/sdks/python/issues
+- GitHub Issues: https://github.com/Responsible-AI-Labs/rail-score-sdk/python/issues
 - Discord: https://responsibleailabs.ai/discord
 
 ## Resources
