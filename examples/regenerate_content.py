@@ -99,10 +99,9 @@ result3 = client.safe_regenerate(
     ),
     mode="basic",
     max_regenerations=2,
+    regeneration_model="RAIL_Safe_LLM",
     thresholds={
         "overall": {"score": 7.5},
-        "dimensions": {"fairness": 8.0, "inclusivity": 8.0},
-        "tradeoff_mode": "strict",
     },
 )
 

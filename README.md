@@ -136,8 +136,8 @@ result = client.safe_regenerate(
 )
 
 print(result.best_content)
-print(f"Final score: {result.final_score}")
-print(f"Iterations: {result.iterations_used}")
+print(f"Credits consumed: {result.credits_consumed}")
+print(f"Best iteration: {result.best_iteration}")
 
 # External mode (client-orchestrated loop)
 result = client.safe_regenerate(
@@ -147,7 +147,7 @@ result = client.safe_regenerate(
     thresholds={"overall": {"score": 7.0}},
 )
 
-if not result.thresholds_met and result.session_id:
+if result.status == "awaiting_regeneration" and result.session_id:
     # Regenerate with your own model, then continue the session
     improved = my_llm_regenerate(result.best_content)
     result = client.safe_regenerate_continue(
