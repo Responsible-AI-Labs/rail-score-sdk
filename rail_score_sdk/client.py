@@ -404,8 +404,8 @@ class RailScoreClient:
         """Evaluate content across RAIL dimensions.
 
         Supports two modes:
-        - **basic**: Hybrid ML scoring (fast, cheaper).
-        - **deep**: LLM-as-Judge with per-dimension explanations.
+        - **basic**: Fast, cost-efficient scoring.
+        - **deep**: Detailed scoring with per-dimension explanations.
 
         Args:
             content: Text to evaluate (10 -- 10,000 characters).

@@ -49,7 +49,7 @@ class RAILSession:
     policy : str or Policy
         ``"log_only"`` | ``"block"`` | ``"regenerate"`` | ``"custom"``.
     mode : str
-        ``"basic"`` (fast/cheap) or ``"deep"`` (LLM-as-Judge).
+        ``"basic"`` (fast) or ``"deep"`` (detailed with explanations).
     domain : str
         Content domain passed to the API (e.g. ``"healthcare"``).
     usecase : str

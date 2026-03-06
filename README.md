@@ -88,7 +88,7 @@ asyncio.run(main())
 
 ### Evaluate Content
 
-Score content across all 8 RAIL dimensions. Supports **basic** (hybrid ML, fast) and **deep** (LLM-as-Judge, detailed) modes.
+Score content across all 8 RAIL dimensions. Supports **basic** (fast, cost-efficient) and **deep** (detailed, with per-dimension explanations) modes.
 
 ```python
 # Basic mode — all dimensions
