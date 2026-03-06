@@ -127,12 +127,12 @@ def test_methods_exist():
 
 
 def test_version():
-    """Test version is 2.2.0"""
+    """Test version is 2.2.1"""
     print("\nTesting version...")
 
     from rail_score_sdk import __version__
 
-    assert __version__ == "2.2.0", f"Expected 2.2.0, got {__version__}"
+    assert __version__ == "2.2.1", f"Expected 2.2.1, got {__version__}"
     print(f"  Version: {__version__}")
 
 
