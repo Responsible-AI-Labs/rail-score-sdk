@@ -31,6 +31,8 @@ class RAILInstrumentor:
         self._telemetry = telemetry
         self._tracer = telemetry.tracer
         self._meter = telemetry.meter
+        self._org_id = telemetry.org_id
+        self._project_id = telemetry.project_id
 
         # Create metric instruments
         self._request_counter = self._meter.create_counter(
@@ -76,13 +78,15 @@ class RAILInstrumentor:
             span_name = f"RAIL {method} {endpoint}"
             with self._tracer.start_as_current_span(span_name) as span:
                 span.set_attribute(c.ATTR_ENDPOINT, endpoint)
+                span.set_attribute(c.RESOURCE_ORG_ID, self._org_id)
+                span.set_attribute(c.RESOURCE_PROJECT_ID, self._project_id)
                 if json:
                     if "mode" in json:
                         span.set_attribute(c.ATTR_MODE, json["mode"])
                     if "domain" in json:
                         span.set_attribute(c.ATTR_DOMAIN, json["domain"])
 
-                attrs = {"endpoint": endpoint}
+                attrs = {"endpoint": endpoint, "rail.org_id": self._org_id, "rail.project_id": self._project_id}
                 self._request_counter.add(1, attrs)
                 start = time.monotonic()
 
@@ -123,13 +127,15 @@ class RAILInstrumentor:
             span_name = f"RAIL {method} {path}"
             with self._tracer.start_as_current_span(span_name) as span:
                 span.set_attribute(c.ATTR_ENDPOINT, path)
+                span.set_attribute(c.RESOURCE_ORG_ID, self._org_id)
+                span.set_attribute(c.RESOURCE_PROJECT_ID, self._project_id)
                 if payload:
                     if "mode" in payload:
                         span.set_attribute(c.ATTR_MODE, payload["mode"])
                     if "domain" in payload:
                         span.set_attribute(c.ATTR_DOMAIN, payload["domain"])
 
-                attrs = {"endpoint": path}
+                attrs = {"endpoint": path, "rail.org_id": self._org_id, "rail.project_id": self._project_id}
                 self._request_counter.add(1, attrs)
                 start = time.monotonic()
 
