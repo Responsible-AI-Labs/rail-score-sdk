@@ -5,8 +5,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "rail-score-sdk"
 version = "2.3.0"
-description = "Official Python SDK for RAIL Score API - Responsible AI Content Evaluation"
-readme = "README.md"
+description = "Evaluate AI-generated content across 8 Responsible AI dimensions — fairness, safety, reliability, transparency, privacy, accountability, inclusivity, user impact"
+readme = {file = "PYPI_README.md", content-type = "text/markdown"}
 requires-python = ">=3.8"
 license = "MIT"
 authors = [
@@ -19,14 +19,22 @@ maintainers = [
 ]
 keywords = [
     "rail",
-    "ai-ethics",
-    "content-evaluation",
     "responsible-ai",
     "ai-safety",
+    "ai-ethics",
+    "content-evaluation",
     "content-moderation",
+    "llm-evaluation",
+    "llm-safety",
+    "ai-governance",
+    "compliance",
+    "gdpr",
+    "opentelemetry",
+    "fairness",
+    "transparency",
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
