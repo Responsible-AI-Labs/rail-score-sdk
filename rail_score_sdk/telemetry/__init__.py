@@ -30,6 +30,7 @@ Usage::
 from .core import RAILTelemetry
 from .instrumentor import RAILInstrumentor
 from .compliance_logger import ComplianceLogger, IncidentLogger
+from .review_queue import HumanReviewQueue, ReviewItem
 from . import constants
 
 __all__ = [
@@ -37,5 +38,7 @@ __all__ = [
     "RAILInstrumentor",
     "ComplianceLogger",
     "IncidentLogger",
+    "HumanReviewQueue",
+    "ReviewItem",
     "constants",
 ]
