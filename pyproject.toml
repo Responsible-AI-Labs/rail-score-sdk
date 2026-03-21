@@ -64,6 +64,11 @@ integrations = [
     "langfuse>=3.0",
     "litellm>=1.40",
 ]
+telemetry = [
+    "opentelemetry-api>=1.20.0",
+    "opentelemetry-sdk>=1.20.0",
+    "opentelemetry-exporter-otlp>=1.20.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/Responsible-AI-Labs/rail-score-sdk"
@@ -74,7 +79,7 @@ Repository = "https://github.com/Responsible-AI-Labs/rail-score-sdk"
 Changelog = "https://github.com/Responsible-AI-Labs/rail-score-sdk/blob/main/CHANGELOG.md"
 
 [tool.setuptools]
-packages = ["rail_score_sdk", "rail_score_sdk.integrations"]
+packages = ["rail_score_sdk", "rail_score_sdk.integrations", "rail_score_sdk.telemetry"]
 
 [tool.setuptools.package-data]
 rail_score_sdk = ["py.typed"]

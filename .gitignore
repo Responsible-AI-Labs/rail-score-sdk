@@ -225,3 +225,6 @@ rail_s_p/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Local development only — not for public repo
+tests/

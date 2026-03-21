@@ -39,6 +39,14 @@ Handling authentication errors, validation errors, insufficient credits, rate li
 ### [batch_processing.py](batch_processing.py)
 Processing multiple content items with retry logic, progress tracking, and aggregate statistics.
 
+### [telemetry_observability.py](telemetry_observability.py)
+OpenTelemetry observability for production deployments. Covers RAILTelemetry setup (console and OTLP exporters), multi-project scoping, ComplianceLogger for structured compliance logs, IncidentLogger for tracked threshold-breach incidents, and HumanReviewQueue for per-dimension flagging of low-scoring content.
+
+```bash
+pip install "rail-score-sdk[telemetry]"
+python examples/telemetry_observability.py
+```
+
 ## API Endpoints Covered
 
 | Example | Endpoints |
@@ -49,3 +57,4 @@ Processing multiple content items with retry logic, progress tracking, and aggre
 | regenerate_content | `protected` (evaluate + regenerate) |
 | error_handling | `eval`, `protected` |
 | batch_processing | `eval` |
+| telemetry_observability | `eval`, `compliance/check` (with full OTEL instrumentation) |

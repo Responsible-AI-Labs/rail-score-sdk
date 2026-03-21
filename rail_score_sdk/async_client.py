@@ -34,12 +34,14 @@ class AsyncRAILClient:
         timeout: float = 30.0,
         max_retries: int = 2,
         enable_cache: bool = True,
+        telemetry=None,
     ) -> None:
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.max_retries = max_retries
         self.enable_cache = enable_cache
+        self._telemetry = telemetry
         self._cache: Dict[str, tuple[float, Any]] = {}
         self._client: Optional[httpx.AsyncClient] = None
 
@@ -55,6 +57,9 @@ class AsyncRAILClient:
             },
             timeout=self.timeout,
         )
+        if self._telemetry is not None:
+            from .telemetry.instrumentor import RAILInstrumentor
+            RAILInstrumentor(self._telemetry).instrument_async_client(self)
         return self
 
     async def __aexit__(self, *exc: Any) -> None:

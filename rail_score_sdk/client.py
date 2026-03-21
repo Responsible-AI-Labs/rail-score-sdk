@@ -107,6 +107,7 @@ class RailScoreClient:
         api_key: str,
         base_url: str = "https://api.responsibleailabs.ai",
         timeout: int = 30,
+        telemetry=None,
     ):
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
@@ -118,6 +119,9 @@ class RailScoreClient:
                 "Content-Type": "application/json",
             }
         )
+        if telemetry is not None:
+            from .telemetry.instrumentor import RAILInstrumentor
+            RAILInstrumentor(telemetry).instrument_sync_client(self)
 
     # ------------------------------------------------------------------
     # Internal helpers
