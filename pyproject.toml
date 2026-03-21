@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rail-score-sdk"
-version = "2.3.0"
+version = "2.4.0"
 description = "Evaluate AI-generated content across 8 Responsible AI dimensions — fairness, safety, reliability, transparency, privacy, accountability, inclusivity, user impact"
 readme = {file = "PYPI_README.md", content-type = "text/markdown"}
 requires-python = ">=3.8"
@@ -72,6 +72,14 @@ integrations = [
     "langfuse>=3.0",
     "litellm>=1.40",
 ]
+crewai = ["crewai>=0.30"]
+langgraph = ["langgraph>=0.1"]
+autogen = ["pyautogen>=0.2"]
+agents = [
+    "crewai>=0.30",
+    "langgraph>=0.1",
+    "pyautogen>=0.2",
+]
 telemetry = [
     "opentelemetry-api>=1.20.0",
     "opentelemetry-sdk>=1.20.0",
@@ -87,7 +95,13 @@ Repository = "https://github.com/Responsible-AI-Labs/rail-score-sdk"
 Changelog = "https://github.com/Responsible-AI-Labs/rail-score-sdk/blob/main/CHANGELOG.md"
 
 [tool.setuptools]
-packages = ["rail_score_sdk", "rail_score_sdk.integrations", "rail_score_sdk.telemetry"]
+packages = [
+    "rail_score_sdk",
+    "rail_score_sdk.integrations",
+    "rail_score_sdk.telemetry",
+    "rail_score_sdk.agent",
+    "rail_score_sdk.agent.integrations",
+]
 
 [tool.setuptools.package-data]
 rail_score_sdk = ["py.typed"]

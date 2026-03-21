@@ -2,6 +2,7 @@
 
 import requests
 from typing import Optional, Dict, Any, List, Union
+from .agent import AgentClient
 from .models import (
     RailScore,
     DimensionScore,
@@ -122,6 +123,7 @@ class RailScoreClient:
         if telemetry is not None:
             from .telemetry.instrumentor import RAILInstrumentor
             RAILInstrumentor(telemetry).instrument_sync_client(self)
+        self.agent = AgentClient(self)
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -134,6 +136,7 @@ class RailScoreClient:
         json: Optional[Dict[str, Any]] = None,
         params: Optional[Dict[str, Any]] = None,
         authenticated: bool = True,
+        extra_headers: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """Make an HTTP request to the API.
 
@@ -143,6 +146,7 @@ class RailScoreClient:
             json: JSON request body.
             params: Query parameters.
             authenticated: Whether to include the auth header (default True).
+            extra_headers: Additional headers to include in the request.
 
         Returns:
             Parsed JSON response dict.
@@ -152,9 +156,11 @@ class RailScoreClient:
         """
         url = f"{self.base_url}{endpoint}"
 
-        headers = {}
+        headers: Dict[str, str] = {}
         if not authenticated:
             headers["Authorization"] = ""
+        if extra_headers:
+            headers.update(extra_headers)
 
         try:
             response = self.session.request(
@@ -163,7 +169,7 @@ class RailScoreClient:
                 json=json,
                 params=params,
                 timeout=self.timeout,
-                headers=headers if not authenticated else None,
+                headers=headers if headers else None,
             )
 
             if not response.ok:
