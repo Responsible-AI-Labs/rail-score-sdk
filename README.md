@@ -15,7 +15,9 @@ Official Python client library for the RAIL Score API — Evaluate AI-generated 
 - **Policy Engine** — Configurable enforcement: `log_only`, `block`, `regenerate`, or `custom` callback
 - **Multi-Turn Sessions** — Conversation-aware evaluation with adaptive quality gating
 - **LLM Provider Wrappers** — Drop-in wrappers for OpenAI, Anthropic, and Google Gemini
-- **Observability** — Langfuse v3 score integration and LiteLLM guardrail support
+- **OpenTelemetry Observability** — Vendor-neutral tracing, metrics, and structured logs with project/org scoping
+- **Compliance Incident Handling** — Raise tracked incidents and human review queues on threshold breaches
+- **Observability Integrations** — Langfuse v3 score integration and LiteLLM guardrail support
 - **Type-Safe** — Full type hints and typed response models
 - **Error Handling** — Granular exception hierarchy for every error scenario
 
@@ -25,15 +27,18 @@ Official Python client library for the RAIL Score API — Evaluate AI-generated 
 pip install rail-score-sdk
 ```
 
-With optional LLM provider integrations:
+With optional extras:
 
 ```bash
-# Individual providers
+# LLM provider wrappers
 pip install "rail-score-sdk[openai]"
 pip install "rail-score-sdk[anthropic]"
 pip install "rail-score-sdk[google]"
 
-# Observability
+# OpenTelemetry observability
+pip install "rail-score-sdk[telemetry]"
+
+# Observability integrations
 pip install "rail-score-sdk[langfuse]"
 pip install "rail-score-sdk[litellm]"
 
@@ -485,6 +490,137 @@ asyncio.run(main())
 
 ---
 
+## OpenTelemetry Observability
+
+```bash
+pip install "rail-score-sdk[telemetry]"
+```
+
+Vendor-neutral observability using the OpenTelemetry standard. Every API call is automatically traced, metered, and logged — no code changes required beyond passing a `telemetry` instance to the client.
+
+### Setup
+
+```python
+from rail_score_sdk import RailScoreClient
+from rail_score_sdk.telemetry import RAILTelemetry
+
+# Console exporter — useful for development
+telemetry = RAILTelemetry(
+    org_id="acme-corp",
+    project_id="customer-chatbot",
+    environment="production",
+    exporter="console",
+)
+
+# OTLP exporter — for production (Datadog, Grafana, Jaeger, etc.)
+telemetry = RAILTelemetry(
+    org_id="acme-corp",
+    project_id="customer-chatbot",
+    environment="production",
+    exporter="otlp",
+    endpoint="localhost:4317",
+    protocol="grpc",                           # or "http"
+    headers={"Authorization": "Bearer <token>"},
+)
+
+client = RailScoreClient(api_key="rail_xxx", telemetry=telemetry)
+```
+
+Every call through a telemetry-enabled client automatically emits:
+- **Span** — `RAIL POST /railscore/v1/eval` with `rail.score`, `rail.confidence`, `rail.mode`, `rail.project_id`
+- **Metrics** — `rail.requests` counter, `rail.request.duration` histogram, `rail.score.distribution` histogram
+- **Errors** — span status + exception recorded on any API error
+
+### Multi-Project Scoping
+
+Each `RAILTelemetry` instance is fully isolated. Spans and metrics carry `rail.org_id` and `rail.project_id` as first-class span attributes — not just resource attributes — so you can filter per project directly in any OTEL backend dashboard.
+
+```python
+telemetry_chatbot = RAILTelemetry(org_id="acme", project_id="chatbot-v2", ...)
+telemetry_search  = RAILTelemetry(org_id="acme", project_id="search-api", ...)
+
+client_chatbot = RailScoreClient(api_key=KEY, telemetry=telemetry_chatbot)
+client_search  = RailScoreClient(api_key=KEY, telemetry=telemetry_search)
+```
+
+### ComplianceLogger
+
+Emit structured OTEL log records for compliance check results, with per-issue severity tagging:
+
+```python
+from rail_score_sdk.telemetry import ComplianceLogger
+
+comp_logger = ComplianceLogger(telemetry)
+
+result = client.compliance_check(content="...", framework="gdpr")
+comp_logger.log_compliance_result(result)          # INFO summary + WARNING/ERROR per issue
+
+multi = client.compliance_check(content="...", frameworks=["gdpr", "ccpa"])
+comp_logger.log_multi_compliance_result(multi)     # cross-framework + per-framework logs
+```
+
+### IncidentLogger
+
+Raise tracked incidents when compliance scores or RAIL scores breach a threshold. Each incident gets a unique `incident_id` for correlation with external ticketing systems:
+
+```python
+from rail_score_sdk.telemetry import IncidentLogger
+
+incident_logger = IncidentLogger(telemetry)
+
+# Auto-raise from a compliance result
+incident_id = incident_logger.log_compliance_incident(gdpr_result, threshold=6.0)
+
+# Score breach (e.g. from an eval result)
+incident_id = incident_logger.log_score_breach(
+    score=1.8, threshold=4.0, affected_dimensions=["privacy", "transparency"]
+)
+
+# Custom incident
+incident_id = incident_logger.log_incident(
+    incident_type="policy_violation",
+    severity="high",
+    title="PII detected in response",
+    description="Response contained identifiable personal information.",
+    affected_dimensions=["privacy"],
+)
+```
+
+Severity mapping: `critical` → OTEL `FATAL`, `high` → `ERROR`, `medium`/`low` → `WARNING`.
+
+### HumanReviewQueue
+
+Flag any of the 8 RAIL dimensions scoring below a threshold for human review. Items are held in an in-memory per-dimension queue and emitted as structured OTEL logs immediately on enqueue:
+
+```python
+from rail_score_sdk.telemetry import HumanReviewQueue
+
+review_queue = HumanReviewQueue(telemetry, threshold=2.0)
+
+# Auto-check all 8 dimensions from any EvalResult
+result = client.eval(content=text, mode="deep", include_explanations=True)
+flagged = review_queue.check_and_enqueue(
+    result,
+    content_preview=text[:200],
+    link_incident=True,     # also raise an IncidentLogger incident per flagged dimension
+)
+
+print(f"Flagged {len(flagged)} dimension(s)")
+
+# Inspect without removing
+review_queue.pending(dimension="safety")    # safety queue only
+review_queue.pending()                      # all dimensions
+
+# Drain for forwarding to Jira, PagerDuty, Slack, etc.
+for item in review_queue.drain():
+    print(f"[{item.item_id}] {item.dimension}: score={item.score:.1f}")
+    # my_ticketing_system.create(item)
+```
+
+Each `ReviewItem` carries: `item_id`, `dimension`, `score`, `threshold`, `explanation`, `issues`, `incident_id`, `timestamp`, `org_id`, `project_id`.
+
+---
+
 ## Observability Integrations
 
 ### Langfuse
@@ -661,6 +797,7 @@ See the [examples](examples/) directory:
 - **regenerate_content.py** — Protected content evaluation and regeneration
 - **error_handling.py** — Production error handling patterns
 - **batch_processing.py** — Processing multiple items with retry
+- **telemetry_observability.py** — OpenTelemetry setup, multi-project scoping, ComplianceLogger, IncidentLogger, HumanReviewQueue
 
 ## Testing
 
