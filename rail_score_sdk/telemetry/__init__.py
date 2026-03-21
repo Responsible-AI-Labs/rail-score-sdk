@@ -29,12 +29,13 @@ Usage::
 
 from .core import RAILTelemetry
 from .instrumentor import RAILInstrumentor
-from .compliance_logger import ComplianceLogger
+from .compliance_logger import ComplianceLogger, IncidentLogger
 from . import constants
 
 __all__ = [
     "RAILTelemetry",
     "RAILInstrumentor",
     "ComplianceLogger",
+    "IncidentLogger",
     "constants",
 ]

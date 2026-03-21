@@ -1,9 +1,11 @@
-"""Structured OTEL logging for compliance check results."""
+"""Structured OTEL logging for compliance check results and incidents."""
 
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+import uuid
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 
 from . import constants as c
 from .core import RAILTelemetry
@@ -187,4 +189,231 @@ class ComplianceLogger:
             )
         else:
             py_level = getattr(logging, level, logging.INFO)
+            self._py_logger.log(py_level, body, extra=attributes or {})
+
+
+class IncidentLogger:
+    """Emit structured OTEL log records for compliance and score incidents.
+
+    An incident is raised when a compliance check or RAIL score breaches a
+    threshold that warrants tracking, alerting, or escalation.  Each incident
+    gets a unique ``incident_id`` so it can be correlated across logs, traces,
+    and external ticketing systems.
+
+    Parameters
+    ----------
+    telemetry : RAILTelemetry
+        The telemetry instance (provides logger + project/org attributes).
+
+    Example::
+
+        incident_logger = IncidentLogger(telemetry)
+
+        # Auto-raise from a compliance result that breached threshold
+        incident_logger.log_compliance_incident(gdpr_result, threshold=6.0)
+
+        # Manually raise a score-breach incident
+        incident_logger.log_score_breach(score=3.2, threshold=6.0)
+
+        # Raise a custom incident
+        incident_logger.log_incident(
+            incident_type="policy_violation",
+            severity="high",
+            title="GDPR data minimisation breach",
+            description="Response exposes unnecessary PII fields.",
+        )
+    """
+
+    def __init__(self, telemetry: "RAILTelemetry") -> None:  # noqa: F821
+        self._telemetry = telemetry
+        self._otel_logger = telemetry.logger
+        self._py_logger = logging.getLogger("rail.incident")
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def log_incident(
+        self,
+        incident_type: str,
+        severity: str,
+        title: str,
+        description: str,
+        framework: str = "",
+        score: Optional[float] = None,
+        threshold: Optional[float] = None,
+        affected_dimensions: Optional[List[str]] = None,
+        incident_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """Emit a structured incident log record and return the incident_id.
+
+        Parameters
+        ----------
+        incident_type:
+            Category of the incident — e.g. ``"compliance_violation"``,
+            ``"score_breach"``, ``"policy_violation"``.
+        severity:
+            ``"critical"`` | ``"high"`` | ``"medium"`` | ``"low"``
+        title:
+            Short human-readable title for the incident.
+        description:
+            Full description of what triggered the incident.
+        framework:
+            Compliance framework involved (e.g. ``"gdpr"``), if applicable.
+        score:
+            The actual score that triggered the incident.
+        threshold:
+            The threshold that was breached.
+        affected_dimensions:
+            RAIL dimensions involved (e.g. ``["privacy", "transparency"]``).
+        incident_id:
+            Supply your own ID for correlation; auto-generated if omitted.
+        metadata:
+            Any extra key-value pairs to attach to the log record.
+        """
+        incident_id = incident_id or f"inc_{uuid.uuid4().hex[:12]}"
+        timestamp = datetime.now(timezone.utc).isoformat()
+
+        attrs: Dict[str, Any] = {
+            c.ATTR_INCIDENT_ID: incident_id,
+            c.ATTR_INCIDENT_TYPE: incident_type,
+            c.ATTR_INCIDENT_SEVERITY: severity,
+            c.ATTR_INCIDENT_STATUS: "open",
+            c.ATTR_INCIDENT_TITLE: title,
+            c.RESOURCE_ORG_ID: self._telemetry.org_id,
+            c.RESOURCE_PROJECT_ID: self._telemetry.project_id,
+            c.RESOURCE_ENVIRONMENT: self._telemetry.environment,
+            "rail.incident.timestamp": timestamp,
+        }
+
+        if framework:
+            attrs[c.ATTR_COMPLIANCE_FRAMEWORK] = framework
+        if score is not None:
+            attrs[c.ATTR_INCIDENT_THRESHOLD] = threshold or 0.0
+            attrs[c.ATTR_COMPLIANCE_SCORE] = score
+        if threshold is not None:
+            attrs[c.ATTR_INCIDENT_THRESHOLD] = threshold
+        if affected_dimensions:
+            attrs[c.ATTR_INCIDENT_AFFECTED_DIMS] = ",".join(affected_dimensions)
+        if metadata:
+            for k, v in metadata.items():
+                attrs[f"rail.incident.meta.{k}"] = str(v)
+
+        level = "CRITICAL" if severity == "critical" else "ERROR" if severity == "high" else "WARNING"
+        self._emit(
+            level=level,
+            body=(
+                f"[INCIDENT {incident_id}] {severity.upper()} {incident_type}: {title}. "
+                f"{description}"
+            ),
+            attributes=attrs,
+        )
+        return incident_id
+
+    def log_compliance_incident(
+        self,
+        result: Any,
+        threshold: float = 5.0,
+        incident_id: Optional[str] = None,
+    ) -> Optional[str]:
+        """Raise an incident if a compliance result score is below ``threshold``.
+
+        Returns the ``incident_id`` if an incident was raised, else ``None``.
+        """
+        if hasattr(result, "compliance_score"):
+            framework = result.framework
+            score = result.compliance_score.score
+            label = result.compliance_score.label
+            issues = result.issues or []
+        else:
+            framework = result.get("framework", "unknown")
+            cs = result.get("compliance_score", {})
+            score = cs.get("score", 0)
+            label = cs.get("label", "unknown")
+            issues = result.get("issues", [])
+
+        if score >= threshold:
+            return None
+
+        high_issues = [
+            i for i in issues
+            if (i.severity if hasattr(i, "severity") else i.get("severity", "")) == "high"
+        ]
+        severity = "critical" if score < threshold * 0.5 else "high"
+        affected_dims = list({
+            (i.dimension if hasattr(i, "dimension") else i.get("dimension", ""))
+            for i in issues if (i.dimension if hasattr(i, "dimension") else i.get("dimension", ""))
+        })
+
+        return self.log_incident(
+            incident_type="compliance_violation",
+            severity=severity,
+            title=f"{framework.upper()} compliance score below threshold",
+            description=(
+                f"Score {score:.1f} breached threshold {threshold:.1f} "
+                f"(label={label}, high-severity issues={len(high_issues)})."
+            ),
+            framework=framework,
+            score=score,
+            threshold=threshold,
+            affected_dimensions=affected_dims,
+            incident_id=incident_id,
+        )
+
+    def log_score_breach(
+        self,
+        score: float,
+        threshold: float,
+        content_preview: str = "",
+        affected_dimensions: Optional[List[str]] = None,
+        incident_id: Optional[str] = None,
+    ) -> str:
+        """Raise an incident when a RAIL score drops below ``threshold``."""
+        severity = "critical" if score < threshold * 0.5 else "high"
+        description = (
+            f"RAIL score {score:.1f} is below threshold {threshold:.1f}."
+        )
+        if content_preview:
+            description += f" Content preview: \"{content_preview[:120]}\""
+
+        return self.log_incident(
+            incident_type="score_breach",
+            severity=severity,
+            title=f"RAIL score breach (score={score:.1f}, threshold={threshold:.1f})",
+            description=description,
+            score=score,
+            threshold=threshold,
+            affected_dimensions=affected_dimensions,
+            incident_id=incident_id,
+        )
+
+    # ------------------------------------------------------------------
+    # Internal
+    # ------------------------------------------------------------------
+
+    def _emit(
+        self,
+        level: str,
+        body: str,
+        attributes: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        if self._otel_logger is not None and _HAS_OTEL_LOGS:
+            severity_map = {
+                "DEBUG": SeverityNumber.DEBUG,
+                "INFO": SeverityNumber.INFO,
+                "WARNING": SeverityNumber.WARN,
+                "ERROR": SeverityNumber.ERROR,
+                "CRITICAL": SeverityNumber.FATAL,
+            }
+            self._otel_logger.emit(
+                LogRecord(
+                    body=body,
+                    severity_number=severity_map.get(level, SeverityNumber.ERROR),
+                    severity_text=level,
+                    attributes=attributes or {},
+                )
+            )
+        else:
+            py_level = getattr(logging, level, logging.ERROR)
             self._py_logger.log(py_level, body, extra=attributes or {})

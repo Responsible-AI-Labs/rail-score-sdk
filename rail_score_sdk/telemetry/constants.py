@@ -31,6 +31,15 @@ ATTR_COMPLIANCE_LABEL = "rail.compliance.label"
 ATTR_COMPLIANCE_REQS_PASSED = "rail.compliance.requirements_passed"
 ATTR_COMPLIANCE_REQS_FAILED = "rail.compliance.requirements_failed"
 
+# Incident attributes
+ATTR_INCIDENT_ID = "rail.incident.id"
+ATTR_INCIDENT_TYPE = "rail.incident.type"
+ATTR_INCIDENT_SEVERITY = "rail.incident.severity"
+ATTR_INCIDENT_STATUS = "rail.incident.status"
+ATTR_INCIDENT_TITLE = "rail.incident.title"
+ATTR_INCIDENT_THRESHOLD = "rail.incident.threshold"
+ATTR_INCIDENT_AFFECTED_DIMS = "rail.incident.affected_dimensions"
+
 # ---------------------------------------------------------------------------
 # Metric instrument names
 # ---------------------------------------------------------------------------
