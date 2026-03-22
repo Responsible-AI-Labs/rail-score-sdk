@@ -54,7 +54,6 @@ jobs:
 
     permissions:
       id-token: write
-      attestations: write
       contents: read
 
     steps:
@@ -63,11 +62,6 @@ jobs:
       with:
         name: dist-packages
         path: dist/
-
-    - name: Generate provenance attestations
-      uses: actions/attest-build-provenance@v1
-      with:
-        subject-path: dist/*
 
     - name: Publish to TestPyPI
       uses: pypa/gh-action-pypi-publish@release/v1
@@ -88,7 +82,6 @@ jobs:
 
     permissions:
       id-token: write
-      attestations: write
       contents: read
 
     steps:
@@ -97,11 +90,6 @@ jobs:
       with:
         name: dist-packages
         path: dist/
-
-    - name: Generate provenance attestations
-      uses: actions/attest-build-provenance@v1
-      with:
-        subject-path: dist/*
 
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
