@@ -1,6 +1,6 @@
 # RAIL Score Python SDK
 
-Official Python client library for the [RAIL Score API](https://responsibleailabs.ai/developer/api-reference) — evaluate AI-generated content across **8 dimensions of Responsible AI**: fairness, safety, reliability, transparency, privacy, accountability, inclusivity, and user impact.
+Official Python client library for the [RAIL Score API](https://responsibleailabs.ai/developer/api-reference) for evaluating AI-generated content across **8 dimensions of Responsible AI**: fairness, safety, reliability, transparency, privacy, accountability, inclusivity, and user impact.
 
 [![PyPI version](https://img.shields.io/pypi/v/rail-score-sdk.svg)](https://pypi.org/project/rail-score-sdk/)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
@@ -10,19 +10,19 @@ Official Python client library for the [RAIL Score API](https://responsibleailab
 
 ## Features
 
-- **Sync & Async Clients** — `RailScoreClient` (requests-based) and `AsyncRAILClient` (httpx-based)
-- **Evaluation** — Score content in `basic` (fast) or `deep` (detailed, with explanations and issues) mode
-- **Safe Regeneration** — Iterate until content meets your quality threshold, server-side or with your own LLM
-- **Compliance Checking** — Evaluate against GDPR, CCPA, HIPAA, EU AI Act, India DPDP, India AI Governance
-- **Policy Engine** — `log_only`, `block`, `regenerate`, or `custom` callback on threshold breach
-- **Multi-Turn Sessions** — Conversation-aware evaluation with per-turn history and adaptive quality gating
-- **Middleware** — Wrap any async LLM function with transparent RAIL evaluation and policy enforcement
-- **Agent Evaluation** — Pre-call tool evaluation, post-call result scanning, prompt injection detection, and multi-step plan pre-flight checks for agentic AI systems
-- **LLM Provider Wrappers** — Drop-in wrappers for OpenAI, Anthropic, and Google Gemini
-- **OpenTelemetry Observability** — Vendor-neutral tracing, metrics, and structured logs with per-project scoping
-- **Compliance Incident Handling** — Tracked incidents and per-dimension human review queues
-- **Observability Integrations** — Langfuse v3 and LiteLLM guardrail support
-- **Type-Safe** — Full type hints and typed response models throughout
+- **Sync & Async Clients**: `RailScoreClient` (requests-based) and `AsyncRAILClient` (httpx-based)
+- **Evaluation**: Score content in `basic` (fast) or `deep` (with explanations and issues) mode
+- **Safe Regeneration**: Iterate until content meets your quality threshold, server-side or with your own LLM
+- **Compliance Checking**: Evaluate against GDPR, CCPA, HIPAA, EU AI Act, India DPDP, India AI Governance
+- **Policy Engine**: `log_only`, `block`, `regenerate`, or `custom` callback on threshold breach
+- **Multi-Turn Sessions**: Conversation-aware evaluation with per-turn history and adaptive quality gating
+- **Middleware**: Wrap any async LLM function with transparent RAIL evaluation and policy enforcement
+- **Agent Evaluation**: Pre-call tool evaluation, post-call result scanning, prompt injection detection, and multi-step plan pre-flight checks for agentic AI systems
+- **LLM Provider Wrappers**: Drop-in wrappers for OpenAI, Anthropic, and Google Gemini
+- **OpenTelemetry Observability**: Vendor-neutral tracing, metrics, and structured logs with per-project scoping
+- **Compliance Incident Handling**: Tracked incidents and per-dimension human review queues
+- **Observability Integrations**: Langfuse v3 and LiteLLM guardrail support
+- **Type-Safe**: Full type hints and typed response models throughout
 
 ---
 
@@ -169,7 +169,7 @@ plan_result = client.agent.evaluate_plan(
 print(plan_result.overall_decision)   # "ALLOW_ALL" | "PARTIAL_BLOCK" | "BLOCK_ALL"
 ```
 
-### AgentSession — cross-call risk tracking
+### AgentSession: cross-call risk tracking
 
 ```python
 from rail_score_sdk import AgentSession
@@ -311,7 +311,7 @@ client = RailScoreClient(api_key="rail_xxx", telemetry=telemetry)
 
 | Dimension | What it measures |
 |-----------|-----------------|
-| **Fairness** | Equitable treatment across groups — no bias or stereotyping |
+| **Fairness** | Equitable treatment across groups, no bias or stereotyping |
 | **Safety** | Prevention of harmful, toxic, or unsafe content |
 | **Reliability** | Factual accuracy, consistency, calibrated uncertainty |
 | **Transparency** | Clear reasoning, honest limitations, no deceptive framing |
@@ -328,15 +328,15 @@ client = RailScoreClient(api_key="rail_xxx", telemetry=telemetry)
 
 ```python
 from rail_score_sdk.exceptions import (
-    RailScoreError,           # base — all exceptions inherit from this
+    RailScoreError,           # base class
     AuthenticationError,      # 401
-    InsufficientCreditsError, # 402 — e.balance, e.required
+    InsufficientCreditsError, # 402
     ValidationError,          # 400
     ContentTooHarmfulError,   # 422
     RateLimitError,           # 429
-    EvaluationFailedError,    # 500 — safe to retry
+    EvaluationFailedError,    # 500
     ServiceUnavailableError,  # 503
-    RAILBlockedError,         # policy=BLOCK triggered — e.score, e.threshold
+    RAILBlockedError,         # raised when policy=BLOCK triggers
 )
 
 from rail_score_sdk import AgentBlockedError, PlanBlockedError  # agent-specific
@@ -345,8 +345,8 @@ try:
     result = client.eval(content="...")
 except AuthenticationError:
     print("Check your API key")
-except InsufficientCreditsError as e:
-    print(f"Need {e.required} credits, have {e.balance}")
+except InsufficientCreditsError:
+    print("Usage limit reached")
 except RailScoreError as e:
     print(f"API error ({e.status_code}): {e.message}")
 ```

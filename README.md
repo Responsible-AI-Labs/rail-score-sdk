@@ -1,6 +1,6 @@
 # RAIL Score Python SDK
 
-Official Python client library for the [RAIL Score API](https://responsibleailabs.ai/developer/api-reference) — evaluate AI-generated content across 8 dimensions of Responsible AI.
+Official Python client library for the [RAIL Score API](https://responsibleailabs.ai/developer/api-reference) for evaluating AI-generated content across 8 dimensions of Responsible AI.
 
 [![PyPI version](https://img.shields.io/pypi/v/rail-score-sdk.svg)](https://pypi.org/project/rail-score-sdk/)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
@@ -549,7 +549,7 @@ print(f"Score: {response.rail_score}/10")
 pip install "rail-score-sdk[telemetry]"
 ```
 
-Vendor-neutral observability using the OpenTelemetry standard. Every API call is automatically traced and metered once you pass a `RAILTelemetry` instance to the client — no other code changes needed.
+Vendor-neutral observability using the OpenTelemetry standard. Every API call is automatically traced and metered once you pass a `RAILTelemetry` instance to the client. No other code changes needed.
 
 ### Telemetry pipeline
 
@@ -614,13 +614,13 @@ client = RailScoreClient(api_key="rail_xxx", telemetry=telemetry)
 ```
 
 Automatically emitted per request:
-- **Span** — `RAIL POST /railscore/v1/eval` with `rail.score`, `rail.confidence`, `rail.mode`, `rail.project_id`, `rail.org_id`
-- **Counters** — `rail.requests`, `rail.errors`, `rail.credits.consumed`
-- **Histograms** — `rail.request.duration`, `rail.score.distribution`
+- **Span**: `RAIL POST /railscore/v1/eval` with `rail.score`, `rail.confidence`, `rail.mode`, `rail.project_id`, `rail.org_id`
+- **Counters**: `rail.requests`, `rail.errors`
+- **Histograms**: `rail.request.duration`, `rail.score.distribution`
 
 ### Multi-project scoping
 
-Each `RAILTelemetry` instance is fully isolated — providers are not shared. `rail.org_id` and `rail.project_id` are first-class span and metric attributes (not just resource attributes), so you can filter per project directly in any OTEL backend dashboard.
+Each `RAILTelemetry` instance is fully isolated; providers are not shared. `rail.org_id` and `rail.project_id` are first-class span and metric attributes, so you can filter per project directly in any OTEL backend dashboard.
 
 ```python
 telemetry_chatbot = RAILTelemetry(org_id="acme", project_id="chatbot-v2", exporter="otlp", ...)
@@ -803,7 +803,7 @@ Content is scored across 8 dimensions on a **0–10 scale**:
 
 | Dimension | What it measures |
 |-----------|-----------------|
-| **Fairness** | Equitable treatment across demographic groups — no bias, stereotyping, or double standards |
+| **Fairness** | Equitable treatment across demographic groups, no bias, stereotyping, or double standards |
 | **Safety** | Prevention of harmful, toxic, violent, or unsafe content |
 | **Reliability** | Factual accuracy, internal consistency, appropriate epistemic calibration |
 | **Transparency** | Clear communication of reasoning, limitations, and uncertainty |
@@ -1005,28 +1005,28 @@ All exceptions inherit from `RailScoreError` and carry `status_code`, `message`,
 ```python
 from rail_score_sdk.exceptions import (
     RailScoreError,           # base class
-    AuthenticationError,      # 401 — bad API key
-    InsufficientCreditsError, # 402 — check e.balance / e.required
-    InsufficientTierError,    # 403 — feature requires plan upgrade
-    ValidationError,          # 400 — bad request params
-    ContentTooHarmfulError,   # 422 — content too harmful to regenerate
-    RateLimitError,           # 429 — retry after cooldown
-    EvaluationFailedError,    # 500 — safe to retry
-    ServiceUnavailableError,  # 503 — transient outage
-    SessionExpiredError,      # 410 — session_id no longer valid
-    RAILBlockedError,         # policy=BLOCK triggered (carries score + threshold)
+    AuthenticationError,      # 401
+    InsufficientCreditsError, # 402
+    InsufficientTierError,    # 403
+    ValidationError,          # 400
+    ContentTooHarmfulError,   # 422
+    RateLimitError,           # 429
+    EvaluationFailedError,    # 500
+    ServiceUnavailableError,  # 503
+    SessionExpiredError,      # 410
+    RAILBlockedError,         # raised when policy=BLOCK triggers
 )
 
 try:
     result = client.eval(content="...")
 except AuthenticationError:
     print("Check your API key")
-except InsufficientCreditsError as e:
-    print(f"Credits: {e.balance} available, {e.required} needed")
+except InsufficientCreditsError:
+    print("Usage limit reached")
 except ValidationError as e:
     print(f"Bad request: {e.message}")
 except RateLimitError:
-    print("Rate limited — retry after cooldown")
+    print("Rate limited, retry after cooldown")
 except RailScoreError as e:
     print(f"API error ({e.status_code}): {e.message}")
 
@@ -1075,4 +1075,4 @@ See the [`examples/`](examples/) directory for runnable scripts and notebooks:
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details.
+MIT License. See [LICENSE](LICENSE) for details.
