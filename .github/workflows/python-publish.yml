@@ -48,13 +48,6 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'testpypi'
-    environment:
-      name: testpypi
-      url: https://test.pypi.org/p/rail-score-sdk
-
-    permissions:
-      id-token: write
-      contents: read
 
     steps:
     - name: Download artifacts
@@ -64,10 +57,10 @@ jobs:
         path: dist/
 
     - name: Publish to TestPyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        packages-dir: dist/
-        repository-url: https://test.pypi.org/legacy/
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
+      run: twine upload --repository testpypi dist/*
 
   publish-pypi:
     name: Publish to PyPI
@@ -76,13 +69,6 @@ jobs:
     if: >
       (github.event_name == 'release' && github.event.action == 'published') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'pypi')
-    environment:
-      name: pypi
-      url: https://pypi.org/p/rail-score-sdk
-
-    permissions:
-      id-token: write
-      contents: read
 
     steps:
     - name: Download artifacts
@@ -92,9 +78,10 @@ jobs:
         path: dist/
 
     - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        packages-dir: dist/
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+      run: twine upload dist/*
 
   verify-installation:
     name: Verify Installation
