@@ -16,6 +16,7 @@ from .models import (
     ToolResultRisk,
     ToolRiskProfile,
 )
+from ..exceptions import InsufficientTierError
 from ._client import (
     _parse_agent_decision,
     _parse_injection_check,
@@ -49,7 +50,7 @@ class AsyncAgentRegistryClient:
         if search is not None:
             params["search"] = search
 
-        data = await self._c._request("GET", "/agent/registry/tools", params=params)
+        data = await self._c._request("GET", "/railscore/v1/agent/registry/tools", params=params)
         tools = [_parse_tool_profile(t) for t in data.get("tools", [])]
         pag = data.get("pagination", {})
         return ToolRegistryList(
@@ -89,11 +90,11 @@ class AsyncAgentRegistryClient:
         if description is not None:
             payload["description"] = description
 
-        data = await self._c._request("POST", "/agent/registry/tools", payload=payload)
+        data = await self._c._request("POST", "/railscore/v1/agent/registry/tools", payload=payload)
         return _parse_tool_profile(data.get("tool", data))
 
     async def delete_tool(self, tool_name: str) -> RegistryDeleteResult:
-        data = await self._c._request("DELETE", f"/agent/registry/tools/{tool_name}")
+        data = await self._c._request("DELETE", f"/railscore/v1/agent/registry/tools/{tool_name}")
         return RegistryDeleteResult(
             tool_name=tool_name,
             deleted=data.get("deleted", True),
@@ -150,12 +151,17 @@ class AsyncAgentClient:
         if custom_thresholds is not None:
             payload["custom_thresholds"] = custom_thresholds
 
-        data = await self._c._request(
-            "POST",
-            "/agent/tool-call",
-            payload=payload,
-            extra_headers=_extra_headers,
-        )
+        try:
+            data = await self._c._request(
+                "POST",
+                "/railscore/v1/agent/tool-call",
+                payload=payload,
+                extra_headers=_extra_headers,
+            )
+        except InsufficientTierError as e:
+            if isinstance(getattr(e, "response", None), dict) and "decision" in e.response:
+                return _parse_agent_decision(e.response)
+            raise
         return _parse_agent_decision(data)
 
     async def evaluate_tool_result(
@@ -168,11 +174,18 @@ class AsyncAgentClient:
         agent_context: Optional[Dict[str, Any]] = None,
     ) -> ToolResultRisk:
         """Evaluate a tool's output **after** execution (async)."""
-        payload: Dict[str, Any] = {"tool_name": tool_name}
+        tool_result_obj: Dict[str, Any] = {}
         if tool_result is not None:
-            payload["tool_result"] = tool_result
+            tool_result_obj["raw"] = tool_result
+            tool_result_obj["format"] = "text"
         if tool_result_data is not None:
-            payload["tool_result_data"] = tool_result_data
+            tool_result_obj["data"] = tool_result_data
+            tool_result_obj.setdefault("format", "json")
+
+        payload: Dict[str, Any] = {
+            "tool_name": tool_name,
+            "tool_result": tool_result_obj,
+        }
         if tool_params is not None:
             payload["tool_params"] = tool_params
         if checks is not None:
@@ -180,7 +193,7 @@ class AsyncAgentClient:
         if agent_context is not None:
             payload["agent_context"] = agent_context
 
-        data = await self._c._request("POST", "/agent/tool-result", payload=payload)
+        data = await self._c._request("POST", "/railscore/v1/agent/tool-result", payload=payload)
         return _parse_tool_result_risk(data)
 
     async def check_injection(
@@ -196,7 +209,7 @@ class AsyncAgentClient:
         if agent_context is not None:
             payload["agent_context"] = agent_context
 
-        data = await self._c._request("POST", "/agent/prompt-injection", payload=payload)
+        data = await self._c._request("POST", "/railscore/v1/agent/prompt-injection", payload=payload)
         return _parse_injection_check(data)
 
     async def evaluate_plan(
