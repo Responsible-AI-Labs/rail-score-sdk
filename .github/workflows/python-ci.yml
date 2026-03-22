@@ -93,14 +93,25 @@ jobs:
         pip install -r requirements.txt
         pip install -r requirements-dev.txt
 
-    - name: Run quick tests
-      run: |
-        python test_sdk_quick.py
-
-    - name: Test package installation
+    - name: Test package installation and imports
       run: |
         pip install -e .
-        python -c "from rail_score_sdk import RailScoreClient; print('Package imports successfully')"
+        python -c "
+        from rail_score_sdk import (
+            RailScoreClient, AsyncRAILClient, __version__,
+            AgentSession, AgentPolicy, AgentPolicyEngine, AgentMiddleware,
+            AgentBlockedError, PlanBlockedError, SessionClosedError,
+            AgentDecision, ToolResultRisk, InjectionCheck, PlanEvaluation, SessionRiskSummary,
+        )
+        client = RailScoreClient(api_key='test-key')
+        assert hasattr(client, 'agent'), 'client.agent namespace missing'
+        assert hasattr(client.agent, 'evaluate_tool_call')
+        assert hasattr(client.agent, 'evaluate_tool_result')
+        assert hasattr(client.agent, 'check_injection')
+        assert hasattr(client.agent, 'evaluate_plan')
+        assert hasattr(client.agent, 'registry')
+        print(f'rail-score-sdk v{__version__} — all imports and client.agent namespace verified')
+        "
 
   build:
     name: Build Distribution

@@ -5,6 +5,41 @@ All notable changes to the RAIL Score Python SDK will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026-03-23
+
+### Added
+- **Agent evaluation namespace** (`client.agent`) on both `RailScoreClient` and `AsyncRAILClient`
+  - `evaluate_tool_call()` — pre-execution risk assessment with ALLOW / FLAG / BLOCK decision, proxy variable detection, and compliance violation reporting
+  - `evaluate_tool_result()` — post-execution output scanning for PII, prompt injection, and RAIL risk
+  - `check_injection()` — standalone prompt injection detection with attack type classification
+  - `evaluate_plan()` — pre-flight evaluation of multi-step agent plans (up to 20 steps); returns per-step decisions and an ALLOW_ALL / PARTIAL_BLOCK / BLOCK_ALL overall verdict
+- **Tool risk registry** (`client.agent.registry`): `list_tools()`, `register_tool()`, `delete_tool()` — manage custom tool risk profiles with proxy variable watchlists and per-tool compliance rules
+- **`AgentSession`** — client-side session tracking across multiple tool calls; accumulates risk scores, detects cross-call patterns (repeated PII access, escalating risk, blocked retries, compliance accumulation, dimension degradation), and exposes `risk_summary()` and `close()`
+- **`AgentPolicy` / `AgentPolicyEngine`** — enforce per-tool thresholds with BLOCK, SUGGEST_FIX, LOG_ONLY, or AUTO_FIX modes; raises `AgentBlockedError` on violation
+- **`AgentMiddleware`** — `@guard(tool_name=...)` decorator for automatic pre-call (and optional post-call) evaluation of any tool function
+- **Framework integrations** under `rail_score_sdk.agent.integrations`: `RAILCrewAICallback`, `RAILLangGraphGuard`, `RAILAutoGenHook`
+- **New exceptions**: `AgentBlockedError`, `PlanBlockedError`, `SessionClosedError`
+- **New response models**: `AgentDecision`, `ToolResultRisk`, `InjectionCheck`, `PlanEvaluation`, `PlanStepResult`, `AgentDimensionScore`, `AgentContextSignals`, `AgentPolicyResult`, `AgentComplianceViolation`, `PiiDetection`, `PiiEntity`, `InjectionDetection`, `SessionRiskSummary`, `SessionPattern`, `SessionEvent`, `ComplianceExposure`, `ToolRiskProfile`, `ToolRegistryList`, `RegistryDeleteResult`
+- `examples/agent_evaluation.py` — runnable example covering all agent evaluation methods
+- **`HumanReviewQueue`** — per-dimension flagging queue with threshold-based enqueue, OTEL log emission, and `drain()` for forwarding to external systems (Jira, PagerDuty, Slack)
+- **`IncidentLogger`** — tracked compliance and score-breach incidents with unique IDs and OTEL log severity mapping
+- **`ComplianceLogger`** — structured per-framework compliance logs (INFO summary, WARNING/ERROR per issue)
+- Telemetry `review_queue.py` and updated `compliance_logger.py` with full OTEL instrumentation
+- `[agents]` optional dependency group: `crewai>=0.30`, `langgraph>=0.1`, `pyautogen>=0.2`
+- PyPI trusted publishing via OIDC (no API token needed); build provenance attestations on every release
+- `examples/complete_guide.ipynb` and `examples/telemetry_observability.py`
+
+### Changed
+- `client._request()` and `async_client._request()` extended to support `extra_headers` and all HTTP methods with params
+- `pyproject.toml` is now the single build configuration (replaces `setup.py`)
+- CI import check updated to verify all v2.4.0 exports including `client.agent` namespace
+- PyPI publish workflow updated with provenance attestation step and v2.4.0 install verification
+
+### Removed
+- `setup.py` — superseded by `pyproject.toml`
+- `DEPLOYMENT.md` — superseded by the GitHub Actions trusted publishing workflow
+- `test_sdk_quick.py` and `test_with_api.py` — superseded by the `tests/e2e/` suite
+
 ## [2.2.1] - 2026-03-07
 
 ### Added
@@ -142,6 +177,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[2.4.0]: https://github.com/Responsible-AI-Labs/rail-score-sdk/releases/tag/v2.4.0
 [2.2.1]: https://github.com/Responsible-AI-Labs/rail-score-sdk/releases/tag/v2.2.1
 [2.2.0]: https://github.com/Responsible-AI-Labs/rail-score-sdk/releases/tag/v2.2.0
 [2.1.1]: https://github.com/Responsible-AI-Labs/rail-score-sdk/releases/tag/v2.1.1

@@ -32,12 +32,10 @@ jobs:
         pip install build twine
 
     - name: Build package
-      run: |
-        python -m build
+      run: python -m build
 
     - name: Check distribution
-      run: |
-        twine check dist/*
+      run: twine check dist/*
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
@@ -56,6 +54,8 @@ jobs:
 
     permissions:
       id-token: write
+      attestations: write
+      contents: read
 
     steps:
     - name: Download artifacts
@@ -63,6 +63,11 @@ jobs:
       with:
         name: dist-packages
         path: dist/
+
+    - name: Generate provenance attestations
+      uses: actions/attest-build-provenance@v1
+      with:
+        subject-path: dist/*
 
     - name: Publish to TestPyPI
       uses: pypa/gh-action-pypi-publish@release/v1
@@ -74,13 +79,17 @@ jobs:
     name: Publish to PyPI
     needs: build
     runs-on: ubuntu-latest
-    if: (github.event_name == 'release' && github.event.action == 'published') || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'pypi')
+    if: >
+      (github.event_name == 'release' && github.event.action == 'published') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'pypi')
     environment:
       name: pypi
       url: https://pypi.org/p/rail-score-sdk
 
     permissions:
       id-token: write
+      attestations: write
+      contents: read
 
     steps:
     - name: Download artifacts
@@ -89,6 +98,11 @@ jobs:
         name: dist-packages
         path: dist/
 
+    - name: Generate provenance attestations
+      uses: actions/attest-build-provenance@v1
+      with:
+        subject-path: dist/*
+
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
@@ -96,9 +110,10 @@ jobs:
 
   verify-installation:
     name: Verify Installation
-    needs: [publish-pypi]
+    needs: publish-pypi
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ['3.8', '3.11', '3.12']
@@ -110,13 +125,21 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Wait for package availability
-      run: |
-        sleep 120
+      run: sleep 120
 
     - name: Install from PyPI
-      run: |
-        pip install rail-score-sdk
+      run: pip install rail-score-sdk
 
-    - name: Verify installation
+    - name: Verify core imports
       run: |
-        python -c "from rail_score_sdk import RailScoreClient, __version__; print(f'Successfully installed rail-score-sdk v{__version__}')"
+        python -c "
+        from rail_score_sdk import RailScoreClient, AsyncRAILClient, __version__
+        from rail_score_sdk import (
+            AgentSession, AgentPolicy, AgentPolicyEngine, AgentMiddleware,
+            AgentBlockedError, PlanBlockedError, SessionClosedError,
+            AgentDecision, ToolResultRisk, InjectionCheck, PlanEvaluation, SessionRiskSummary,
+        )
+        print(f'rail-score-sdk v{__version__} installed successfully')
+        print('Core imports: OK')
+        print('Agent imports: OK')
+        "

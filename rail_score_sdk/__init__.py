@@ -17,6 +17,16 @@ Async client + session:
     ...         assistant_response="Hi there!",
     ...     )
 
+Agent evaluation:
+    >>> from rail_score_sdk import RailScoreClient
+    >>> from rail_score_sdk.agent import AgentSession, AgentPolicy
+    >>> client = RailScoreClient(api_key="rail_xxx...")
+    >>> result = client.agent.evaluate_tool_call(
+    ...     tool_name="credit_scoring_api",
+    ...     tool_params={"zip_code": "90210", "loan_amount": 50000},
+    ...     domain="finance",
+    ... )
+
 LLM provider wrappers:
     >>> from rail_score_sdk.integrations import RAILOpenAI, RAILAnthropic, RAILGemini
 """
@@ -75,7 +85,23 @@ from .exceptions import (
     ServiceUnavailableError,
 )
 
-__version__ = "2.2.1"
+# Agent evaluation (v2.4+)
+from .agent import (
+    AgentSession,
+    AgentPolicy,
+    AgentPolicyEngine,
+    AgentMiddleware,
+    AgentBlockedError,
+    PlanBlockedError,
+    SessionClosedError,
+    AgentDecision,
+    ToolResultRisk,
+    InjectionCheck,
+    PlanEvaluation,
+    SessionRiskSummary,
+)
+
+__version__ = "2.4.0"
 __all__ = [
     # Sync client
     "RailScoreClient",
@@ -126,4 +152,17 @@ __all__ = [
     "EvaluationFailedError",
     "NotImplementedByServerError",
     "ServiceUnavailableError",
+    # Agent evaluation (v2.4+)
+    "AgentSession",
+    "AgentPolicy",
+    "AgentPolicyEngine",
+    "AgentMiddleware",
+    "AgentBlockedError",
+    "PlanBlockedError",
+    "SessionClosedError",
+    "AgentDecision",
+    "ToolResultRisk",
+    "InjectionCheck",
+    "PlanEvaluation",
+    "SessionRiskSummary",
 ]

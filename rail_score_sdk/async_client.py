@@ -18,6 +18,7 @@ import time
 from typing import Any, Dict, List, Optional
 
 import httpx
+from .agent import AsyncAgentClient
 
 
 _DEFAULT_BASE_URL = "https://api.responsibleailabs.ai"
@@ -44,6 +45,7 @@ class AsyncRAILClient:
         self._telemetry = telemetry
         self._cache: Dict[str, tuple[float, Any]] = {}
         self._client: Optional[httpx.AsyncClient] = None
+        self.agent = AsyncAgentClient(self)
 
     # ------------------------------------------------------------------
     # Context manager
@@ -88,20 +90,30 @@ class AsyncRAILClient:
             self._cache[key] = (time.time(), data)
 
     async def _request(
-        self, method: str, path: str, payload: Optional[Dict[str, Any]] = None
+        self,
+        method: str,
+        path: str,
+        payload: Optional[Dict[str, Any]] = None,
+        params: Optional[Dict[str, Any]] = None,
+        extra_headers: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         if self._client is None:
             raise RuntimeError(
                 "Client not initialised. Use `async with AsyncRAILClient(...) as c:`"
             )
 
+        req_kwargs: Dict[str, Any] = {}
+        if payload is not None:
+            req_kwargs["json"] = payload
+        if params is not None:
+            req_kwargs["params"] = params
+        if extra_headers is not None:
+            req_kwargs["headers"] = extra_headers
+
         last_exc: Optional[Exception] = None
         for attempt in range(self.max_retries + 1):
             try:
-                if method == "POST":
-                    resp = await self._client.post(path, json=payload)
-                else:
-                    resp = await self._client.get(path)
+                resp = await self._client.request(method, path, **req_kwargs)
                 resp.raise_for_status()
                 return resp.json()
             except httpx.HTTPStatusError as exc:

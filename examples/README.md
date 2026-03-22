@@ -33,6 +33,14 @@ Single-framework and multi-framework compliance checks against GDPR, CCPA, HIPAA
 ### [regenerate_content.py](regenerate_content.py)
 Protected content workflow — evaluate content against a quality threshold, regenerate improved content, and the full evaluate-then-regenerate pipeline.
 
+### [agent_evaluation.py](agent_evaluation.py)
+Agent evaluation for agentic AI systems (v2.4+). Covers pre-call tool evaluation (`evaluate_tool_call`), post-call result scanning (`evaluate_tool_result`), prompt injection detection (`check_injection`), multi-step plan evaluation (`evaluate_plan`), tool risk registry CRUD, `AgentPolicyEngine` with BLOCK/LOG_ONLY modes, `AgentSession` for cross-call risk accumulation, and `AgentMiddleware` guard decorator.
+
+```bash
+pip install "rail-score-sdk[agents]"
+python examples/agent_evaluation.py
+```
+
 ### [error_handling.py](error_handling.py)
 Handling authentication errors, validation errors, insufficient credits, rate limiting with retry, and content-too-harmful rejections.
 
@@ -55,6 +63,7 @@ python examples/telemetry_observability.py
 | advanced_features | `eval`, `version` |
 | compliance_check | `compliance/check` (single + multi-framework) |
 | regenerate_content | `protected` (evaluate + regenerate) |
+| agent_evaluation | `agent/tool-call`, `agent/tool-result`, `agent/prompt-injection`, `agent/plan`, `agent/registry/tools` |
 | error_handling | `eval`, `protected` |
 | batch_processing | `eval` |
 | telemetry_observability | `eval`, `compliance/check` (with full OTEL instrumentation) |
