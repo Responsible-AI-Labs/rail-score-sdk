@@ -8,7 +8,7 @@ version = "2.4.0"
 description = "Evaluate AI-generated content across 8 Responsible AI dimensions — fairness, safety, reliability, transparency, privacy, accountability, inclusivity, user impact"
 readme = {file = "PYPI_README.md", content-type = "text/markdown"}
 requires-python = ">=3.8"
-license = "MIT"
+license = {text = "MIT"}
 authors = [
     {name = "Sumit Verma", email = "sumit@responsibleailabs.ai"},
     {name = "Responsible AI Labs Team", email = "research@responsibleailabs.ai"},
@@ -35,6 +35,7 @@ keywords = [
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
+    "License :: OSI Approved :: MIT License",
     "Intended Audience :: Developers",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
