@@ -2,6 +2,7 @@
 
 import requests
 from typing import Optional, Dict, Any, List, Union
+from . import __version__
 from .agent import AgentClient
 from .models import (
     RailScore,
@@ -118,6 +119,8 @@ class RailScoreClient:
             {
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
+                "X-RAIL-Client": f"sdk-python/{__version__}",
+                "User-Agent": f"rail-score-sdk/{__version__}",
             }
         )
         if telemetry is not None:
