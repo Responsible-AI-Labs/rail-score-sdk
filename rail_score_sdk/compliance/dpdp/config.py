@@ -27,8 +27,9 @@ class DPDPConfig:
     entity_type : str
         ``"data_fiduciary"`` or ``"significant_data_fiduciary"``.
     sector : str
-        Industry sector: ``fintech``, ``healthcare``, ``edtech``,
-        ``e_commerce``, ``social_media``, or ``other``.
+        Industry sector: ``fintech``, ``finance``, ``banking``,
+        ``healthcare``, ``edtech``, ``e_commerce``, ``social_media``,
+        or ``other``.
     purpose : str
         Declared processing purpose for purpose-limitation checks.
     pii_action : str

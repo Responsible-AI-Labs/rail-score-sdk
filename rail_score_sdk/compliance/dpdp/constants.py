@@ -10,7 +10,7 @@ AADHAAR_PATTERN = re.compile(r'\b([2-9]\d{3})\s?(\d{4})\s?(\d{4})\b')
 
 PAN_PATTERN = re.compile(r'\b[A-Z]{5}\d{4}[A-Z]\b')
 
-MOBILE_IN_PATTERN = re.compile(r'\b(?:\+91[\s\-]?)?[6-9]\d{9}\b')
+MOBILE_IN_PATTERN = re.compile(r'\b(?:\+91[\s\-]?|0)?[6-9]\d{9}\b')
 
 UPI_PATTERN = re.compile(
     r'\b[\w.\-]+@(?:ybl|paytm|oksbi|okaxis|okicici|okhdfcbank|upi|apl|'
@@ -272,7 +272,8 @@ ALL_EVENT_TYPES = (
 
 VALID_ENTITY_TYPES = frozenset(["data_fiduciary", "significant_data_fiduciary"])
 VALID_SECTORS = frozenset([
-    "fintech", "healthcare", "edtech", "e_commerce", "social_media", "other",
+    "fintech", "finance", "banking", "healthcare", "edtech",
+    "e_commerce", "social_media", "other",
 ])
 VALID_PII_ACTIONS = frozenset(["detect", "mask", "block", "warn", "log"])
 VALID_CHILD_ACTIONS = frozenset(["block", "warn", "log"])
