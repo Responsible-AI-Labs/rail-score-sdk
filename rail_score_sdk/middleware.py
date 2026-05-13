@@ -12,7 +12,7 @@ Usage:
         return "LLM response text"
 
     mw = RAILMiddleware(
-        api_key="rail_xxx",
+        api_key="your-rail-api-key",
         generate_fn=my_llm_call,
         threshold=7.0,
         policy="regenerate",
@@ -26,7 +26,6 @@ from typing import Any, Awaitable, Callable, Dict, List, Optional, Union
 
 from rail_score_sdk.async_client import AsyncRAILClient
 from rail_score_sdk.policies import EvalResult, Policy, PolicyEngine, RAILBlockedError
-
 
 # Callable that takes messages and returns generated text
 GenerateFn = Callable[..., Awaitable[str]]
@@ -88,6 +87,7 @@ class RAILMiddleware:
         eval_input: bool = False,
         input_threshold: float = 5.0,
         base_url: str = "https://api.responsibleailabs.ai",
+        dpdp: Optional[Any] = None,
     ) -> None:
         self.generate_fn = generate_fn
         self.threshold = threshold
@@ -101,6 +101,13 @@ class RAILMiddleware:
 
         self._client = AsyncRAILClient(api_key=api_key, base_url=base_url)
         self._policy = PolicyEngine(policy=policy, threshold=threshold)
+
+        self._dpdp_scanner = None
+        self._dpdp_session_flags: List[str] = []
+        if dpdp is not None:
+            from rail_score_sdk.compliance.dpdp.scanner import DPDPContentScanner
+
+            self._dpdp_scanner = DPDPContentScanner(dpdp)
 
     async def run(
         self,
@@ -133,7 +140,11 @@ class RAILMiddleware:
             # 2) Input safety gate (optional) ---------------------------
             if self.eval_input and messages:
                 last_user = next(
-                    (m["content"] for m in reversed(messages) if m.get("role") == "user"),
+                    (
+                        m["content"]
+                        for m in reversed(messages)
+                        if m.get("role") == "user"
+                    ),
                     None,
                 )
                 if last_user:
@@ -151,8 +162,27 @@ class RAILMiddleware:
                             issues=input_eval.get("issues", []),
                         )
 
+            # 2b) DPDP: scan input for PII and child signals -------------
+            if self._dpdp_scanner and messages:
+                last_user_msg = next(
+                    (
+                        m["content"]
+                        for m in reversed(messages)
+                        if m.get("role") == "user"
+                    ),
+                    None,
+                )
+                if last_user_msg:
+                    input_dpdp = self._dpdp_scanner.scan_text(
+                        last_user_msg,
+                        session_flags=self._dpdp_session_flags,
+                    )
+                    self._dpdp_session_flags = input_dpdp.session_flags
+
             # 3) Generate -----------------------------------------------
-            generated_text = await self.generate_fn(messages=messages, **generate_kwargs)
+            generated_text = await self.generate_fn(
+                messages=messages, **generate_kwargs
+            )
 
             # 4) RAIL evaluation ----------------------------------------
             context_parts = []
@@ -170,12 +200,30 @@ class RAILMiddleware:
                 include_suggestions=True,
             )
 
+            # 4b) DPDP: scan output for PII, child targeting, purpose drift
+            if self._dpdp_scanner:
+                output_dpdp = self._dpdp_scanner.scan_text(
+                    generated_text,
+                    session_flags=self._dpdp_session_flags,
+                )
+                generated_text, output_dpdp = self._dpdp_scanner.apply_actions(
+                    output_dpdp,
+                    generated_text,
+                )
+                self._dpdp_session_flags = output_dpdp.session_flags
+
             # 5) Policy enforcement -------------------------------------
             result = await self._policy.enforce(
                 content=generated_text,
                 eval_response=eval_response,
                 async_client=self._client,
             )
+
+            # 5b) Attach DPDP result to EvalResult
+            if self._dpdp_scanner:
+                result.dpdp = output_dpdp
+                if output_dpdp.masked_content:
+                    result.content = output_dpdp.masked_content
 
             # 6) Post-hook (fire and forget is fine) --------------------
             if self.post_hook is not None:

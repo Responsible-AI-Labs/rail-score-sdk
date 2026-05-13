@@ -24,6 +24,7 @@ Official Python client library for the [RAIL Score API](https://responsibleailab
 - [OpenTelemetry Observability](#opentelemetry-observability)
 - [Observability Integrations](#observability-integrations)
 - [RAIL Dimensions](#rail-dimensions)
+- [India DPDP Compliance](#india-dpdp-compliance)
 - [Error Handling](#error-handling)
 - [Examples](#examples)
 
@@ -609,7 +610,7 @@ telemetry = RAILTelemetry(
     headers={"Authorization": "Bearer <token>"},
 )
 
-client = RailScoreClient(api_key="rail_xxx", telemetry=telemetry)
+client = RailScoreClient(api_key="your-rail-api-key", telemetry=telemetry)
 # Every call now emits spans, metrics, and logs automatically
 ```
 
@@ -998,6 +999,118 @@ async with AsyncRAILClient(api_key="your-api-key") as client:
 
 ---
 
+## India DPDP Compliance
+
+v2.5+ adds comprehensive India Digital Personal Data Protection Act (2023) compliance with three modes:
+
+### Content Scan (Mode A)
+
+Client-side PII detection and masking — zero latency, no API call required.
+
+```python
+from rail_score_sdk.compliance.dpdp import DPDPConfig, DPDPContentScanner
+
+config = DPDPConfig(
+    entity_type="data_fiduciary",
+    sector="finance",
+    pii_action="mask",           # "mask" | "block" | "warn"
+    processes_children=True,
+    child_content_action="block",
+)
+scanner = DPDPContentScanner(config)
+
+result = scanner.scan_text("Aadhaar: 2234 5678 9012, PAN: ABCDE1234F")
+print(f"PII found: {len(result.pii_found)}")
+
+masked, result = scanner.apply_actions(result, "Aadhaar: 2234 5678 9012, PAN: ABCDE1234F")
+print(f"Masked: {masked}")
+```
+
+Detects: Aadhaar (with Verhoeff checksum), PAN, mobile (+91), UPI, passport, voter ID, driving license, IFSC, bank account, GSTIN.
+
+Integrates with middleware and sessions:
+
+```python
+from rail_score_sdk import RAILSession
+from rail_score_sdk.compliance.dpdp import DPDPConfig
+
+async with RAILSession(
+    api_key="your-rail-api-key",
+    threshold=7.0,
+    dpdp=DPDPConfig(pii_action="mask", processes_children=True),
+) as session:
+    result = await session.evaluate_turn(
+        user_message="My 8 year old needs help",
+        assistant_response="Here is age-appropriate advice...",
+    )
+    print(session.dpdp_summary())
+```
+
+### Behavioral Compliance (Mode B)
+
+Event-driven compliance primitives via `client.dpdp`:
+
+```python
+from rail_score_sdk import RailScoreClient
+
+client = RailScoreClient(api_key="your-rail-api-key")
+
+# Gate: can we collect this data?
+decision = client.dpdp.evaluate(
+    action="collect_data",
+    context={"data_type": "aadhaar", "purpose": "kyc", "consent_obtained": True},
+)
+print(f"Verdict: {decision.verdict}")
+
+# Record behavioral events
+client.dpdp.emit(events=[
+    {"type": "consent.granted", "user_id": "u1", "purpose": "kyc"},
+])
+
+# Check required actions for a workflow step
+reqs = client.dpdp.require(
+    session_id="session-1",
+    workflow_step="credit_scoring",
+)
+
+# Create audit-grade evidence
+evidence = client.dpdp.evidence(
+    type="consent_record",
+    params={"user_id": "u1", "purpose": "kyc", "method": "explicit_opt_in"},
+)
+```
+
+### System Audit (Mode C)
+
+Tiered compliance scoring with penalty exposure calculation:
+
+```python
+result = client.dpdp.dpdp_audit(
+    content="Our platform processes Aadhaar numbers for KYC...",
+    entity_type="significant_data_fiduciary",
+    sector="finance",
+)
+print(f"Score: {result.overall_score} ({result.overall_label})")
+```
+
+### DPDP Policy Enforcement
+
+Use `Policy.DPDP_ENFORCE` to run content scans before threshold checks:
+
+```python
+from rail_score_sdk.policies import PolicyEngine, Policy
+from rail_score_sdk.compliance.dpdp import DPDPConfig
+
+engine = PolicyEngine(
+    policy=Policy.DPDP_ENFORCE,
+    threshold=7.0,
+    dpdp=DPDPConfig(pii_action="block"),
+)
+# Raises DPDPBlockedError if Indian PII is detected with pii_action="block"
+```
+
+---
+
 ## Error Handling
 
 All exceptions inherit from `RailScoreError` and carry `status_code`, `message`, and `response`.
@@ -1057,6 +1170,12 @@ See the [`examples/`](examples/) directory for runnable scripts and notebooks:
 | [`chatbot_gemini.py`](examples/chatbot_gemini.py) | Multi-turn chatbot with Gemini + auto RAIL evaluation |
 | [`chatbot_langfuse.py`](examples/chatbot_langfuse.py) | OpenAI + RAIL + Langfuse observability |
 | [`telemetry_observability.py`](examples/telemetry_observability.py) | RAILTelemetry, multi-project scoping, ComplianceLogger, IncidentLogger, HumanReviewQueue |
+| [`dpdp_content_scan.py`](examples/dpdp_content_scan.py) | DPDP PII masking, child signal detection, purpose drift |
+| [`dpdp_events.py`](examples/dpdp_events.py) | DPDP emit/evaluate/require lifecycle for lending |
+| [`dpdp_hiring.py`](examples/dpdp_hiring.py) | DPDP compliance for AI hiring systems |
+| [`dpdp_healthcare_chatbot.py`](examples/dpdp_healthcare_chatbot.py) | RAILSession + DPDP + multi-turn child detection |
+| [`dpdp_openai_wrapper.py`](examples/dpdp_openai_wrapper.py) | RAILOpenAI with DPDP PII masking |
+| [`dpdp_audit.py`](examples/dpdp_audit.py) | DPDP system audit with tiered scoring |
 | [`quickstart.ipynb`](examples/quickstart.ipynb) | Interactive quick start notebook |
 | [`complete_guide.ipynb`](examples/complete_guide.ipynb) | Full feature walkthrough notebook |
 | [`compliance_check.ipynb`](examples/compliance_check.ipynb) | Compliance checking notebook |

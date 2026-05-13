@@ -14,11 +14,12 @@ Official Python client library for the [RAIL Score API](https://responsibleailab
 - **Evaluation**: Score content in `basic` (fast) or `deep` (with explanations and issues) mode
 - **Safe Regeneration**: Iterate until content meets your quality threshold, server-side or with your own LLM
 - **Compliance Checking**: Evaluate against GDPR, CCPA, HIPAA, EU AI Act, India DPDP, India AI Governance
-- **Policy Engine**: `log_only`, `block`, `regenerate`, or `custom` callback on threshold breach
+- **India DPDP Compliance**: Client-side PII detection (Aadhaar, PAN, UPI, mobile), child signal detection, behavioral event primitives (`emit`/`evaluate`/`require`/`evidence`), and system audit with tiered scoring
+- **Policy Engine**: `log_only`, `block`, `regenerate`, `dpdp_enforce`, or `custom` callback on threshold breach
 - **Multi-Turn Sessions**: Conversation-aware evaluation with per-turn history and adaptive quality gating
 - **Middleware**: Wrap any async LLM function with transparent RAIL evaluation and policy enforcement
 - **Agent Evaluation**: Pre-call tool evaluation, post-call result scanning, prompt injection detection, and multi-step plan pre-flight checks for agentic AI systems
-- **LLM Provider Wrappers**: Drop-in wrappers for OpenAI, Anthropic, and Google Gemini
+- **LLM Provider Wrappers**: Drop-in wrappers for OpenAI, Anthropic, and Google Gemini with optional DPDP scanning
 - **OpenTelemetry Observability**: Vendor-neutral tracing, metrics, and structured logs with per-project scoping
 - **Compliance Incident Handling**: Tracked incidents and per-dimension human review queues
 - **Observability Integrations**: Langfuse v3 and LiteLLM guardrail support
@@ -301,7 +302,7 @@ telemetry = RAILTelemetry(
     endpoint="localhost:4317",
 )
 
-client = RailScoreClient(api_key="rail_xxx", telemetry=telemetry)
+client = RailScoreClient(api_key="your-rail-api-key", telemetry=telemetry)
 # Every call auto-emits spans, counters, and histograms
 ```
 
@@ -324,6 +325,89 @@ client = RailScoreClient(api_key="rail_xxx", telemetry=telemetry)
 
 ---
 
+## India DPDP Compliance
+
+v2.5+ adds comprehensive India Digital Personal Data Protection Act (2023) compliance with three modes:
+
+### Content Scan (Client-Side)
+
+Zero-latency PII detection and masking for Indian identity types:
+
+```python
+from rail_score_sdk.compliance.dpdp import DPDPConfig, DPDPContentScanner
+
+config = DPDPConfig(
+    entity_type="data_fiduciary",
+    sector="fintech",
+    purpose="loan_processing",
+    pii_action="mask",
+    processes_children=True,
+)
+
+scanner = DPDPContentScanner(config)
+result = scanner.scan_text("My Aadhaar is 2234 5678 9012 and PAN is ABCDE1234F")
+
+print(result.pii_found)       # [DPDPPiiMatch(type="aadhaar", ...), DPDPPiiMatch(type="pan", ...)]
+print(result.masked_content)  # "My Aadhaar is XXXX XXXX 9012 and PAN is ABCDEXXXXF"
+```
+
+Integrates with `RAILMiddleware` and `RAILSession` via the `dpdp` parameter:
+
+```python
+from rail_score_sdk import RAILSession
+from rail_score_sdk.compliance.dpdp import DPDPConfig
+
+async with RAILSession(
+    api_key="your-rail-api-key",
+    dpdp=DPDPConfig(pii_action="mask", processes_children=True),
+) as session:
+    result = await session.evaluate_turn(user_message="...", assistant_response="...")
+    print(session.dpdp_summary())
+```
+
+### Behavioral Compliance (Event Primitives)
+
+Event-driven compliance via `client.dpdp`:
+
+```python
+decision = client.dpdp.evaluate(
+    action="process_loan_application",
+    context={"data_types": ["aadhaar", "income"], "purpose": "credit_scoring"},
+)
+print(decision.verdict)  # "allow" | "block" | "require_action"
+
+client.dpdp.emit(events=[
+    {"type": "consent_collected", "user_id": "u-123", "purpose": "loan_processing"},
+])
+```
+
+### System Audit
+
+```python
+result = client.dpdp.dpdp_audit(
+    content="Our lending platform processes Aadhaar for KYC...",
+    entity_type="significant_data_fiduciary",
+    sector="banking",
+)
+print(result.tier_1_score, result.total_penalty_exposure_crore)
+```
+
+### DPDP Policy Enforcement
+
+```python
+from rail_score_sdk import PolicyEngine, Policy
+from rail_score_sdk.compliance.dpdp import DPDPConfig
+
+engine = PolicyEngine(
+    policy=Policy.DPDP_ENFORCE,
+    threshold=7.0,
+    dpdp=DPDPConfig(pii_action="block"),
+)
+# Raises DPDPBlockedError if Indian PII is detected with pii_action="block"
+```
+
+---
+
 ## Error Handling
 
 ```python
@@ -340,6 +424,7 @@ from rail_score_sdk.exceptions import (
 )
 
 from rail_score_sdk import AgentBlockedError, PlanBlockedError  # agent-specific
+from rail_score_sdk.compliance.dpdp.exceptions import DPDPBlockedError  # DPDP-specific
 
 try:
     result = client.eval(content="...")

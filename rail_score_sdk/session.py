@@ -7,7 +7,7 @@ and applies the configured policy after each assistant turn.
 Usage:
     from rail_score_sdk import RAILSession
 
-    async with RAILSession(api_key="rail_xxx", threshold=7.0, policy="regenerate") as session:
+    async with RAILSession(api_key="your-rail-api-key", threshold=7.0, policy="regenerate") as session:
         result = await session.evaluate_turn(
             user_message="What medication should I take?",
             assistant_response="Take 500mg ibuprofen every 4 hours.",
@@ -80,6 +80,7 @@ class RAILSession:
         custom_callback: Any = None,
         dimensions: Optional[List[str]] = None,
         weights: Optional[Dict[str, float]] = None,
+        dpdp: Optional[Any] = None,
     ) -> None:
         self.api_key = api_key
         self.threshold = threshold
@@ -100,6 +101,15 @@ class RAILSession:
 
         self._history: List[TurnRecord] = []
         self._turn_counter: int = 0
+
+        self._dpdp_scanner = None
+        self._dpdp_state = None
+        if dpdp is not None:
+            from rail_score_sdk.compliance.dpdp.scanner import DPDPContentScanner
+            from rail_score_sdk.compliance.dpdp.models import DPDPLocalSessionState
+
+            self._dpdp_scanner = DPDPContentScanner(dpdp)
+            self._dpdp_state = DPDPLocalSessionState()
 
     # ------------------------------------------------------------------
     # Context manager
@@ -212,6 +222,23 @@ class RAILSession:
         if extra_context:
             context += f"\n{extra_context}"
 
+        # ---- DPDP: scan user message for child signals / PII ----------
+        if self._dpdp_scanner and self._dpdp_state is not None:
+            input_scan = self._dpdp_scanner.scan_text(
+                user_message,
+                session_flags=self._dpdp_state.session_flags,
+            )
+            self._dpdp_state.session_flags = input_scan.session_flags
+            if input_scan.child_signals:
+                self._dpdp_state.child_data_detected = True
+                ages = [
+                    cs.detected_age
+                    for cs in input_scan.child_signals
+                    if cs.detected_age
+                ]
+                if ages:
+                    self._dpdp_state.child_age = min(ages)
+
         # ---- Call RAIL eval API ----
         eval_response = await self._client.eval(
             content=assistant_response,
@@ -226,12 +253,40 @@ class RAILSession:
             include_suggestions=True,
         )
 
+        # ---- DPDP: scan assistant response ----------------------------
+        dpdp_result = None
+        if self._dpdp_scanner and self._dpdp_state is not None:
+            dpdp_result = self._dpdp_scanner.scan_text(
+                assistant_response,
+                session_flags=self._dpdp_state.session_flags,
+            )
+            assistant_response, dpdp_result = self._dpdp_scanner.apply_actions(
+                dpdp_result,
+                assistant_response,
+            )
+            self._dpdp_state.session_flags = dpdp_result.session_flags
+            self._dpdp_state.pii_found_total += len(dpdp_result.pii_found)
+            self._dpdp_state.violations.extend(dpdp_result.violations)
+            for v in dpdp_result.violations:
+                self._dpdp_state.actions_taken.append(
+                    {
+                        "check": v.check,
+                        "action": v.action,
+                        "turn": self._turn_counter,
+                    }
+                )
+
         # ---- Apply policy ----
         result = await self._policy.enforce(
             content=assistant_response,
             eval_response=eval_response,
             async_client=self._client,
         )
+
+        if dpdp_result is not None:
+            result.dpdp = dpdp_result
+            if dpdp_result.masked_content:
+                result.content = dpdp_result.masked_content
 
         # ---- Record turn ----
         record = TurnRecord(
@@ -243,6 +298,20 @@ class RAILSession:
         self._history.append(record)
 
         return result
+
+    def dpdp_summary(self) -> Dict[str, Any]:
+        """Return a summary of DPDP compliance state for this session."""
+        if self._dpdp_state is None:
+            return {}
+        return {
+            "child_data_detected": self._dpdp_state.child_data_detected,
+            "child_age": self._dpdp_state.child_age,
+            "child_consent_verified": self._dpdp_state.child_consent_verified,
+            "pii_found_total": self._dpdp_state.pii_found_total,
+            "violations": len(self._dpdp_state.violations),
+            "actions_taken": self._dpdp_state.actions_taken,
+            "session_flags": self._dpdp_state.session_flags,
+        }
 
     async def evaluate_input(
         self,

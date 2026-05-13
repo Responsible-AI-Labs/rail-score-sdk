@@ -69,7 +69,9 @@ class RAILLangGraphGuard:
             compliance_frameworks=compliance_frameworks or [],
         )
         self.domain = domain
-        self._policy = policy if isinstance(policy, AgentPolicy) else AgentPolicy(policy)
+        self._policy = (
+            policy if isinstance(policy, AgentPolicy) else AgentPolicy(policy)
+        )
         self._last_result: Optional[Any] = None
 
     def as_node(self) -> Callable[[Dict[str, Any]], Dict[str, Any]]:
@@ -99,9 +101,8 @@ class RAILLangGraphGuard:
         """Conditional edge function — routes based on RAIL decision."""
         decision = state.get("rail_decision", "ALLOW")
         if decision == "BLOCK":
-            if (
-                self._policy == AgentPolicy.SUGGEST_FIX
-                and state.get("rail_suggested_params")
+            if self._policy == AgentPolicy.SUGGEST_FIX and state.get(
+                "rail_suggested_params"
             ):
                 # Inject suggested params and retry planning
                 return "block"

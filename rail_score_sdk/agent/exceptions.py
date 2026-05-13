@@ -37,16 +37,17 @@ class PlanBlockedError(Exception):
         self.blocked_steps = blocked_steps or []
         self.plan_summary = plan_summary
         super().__init__(
-            f"Plan blocked: {overall_decision}. "
-            f"Blocked steps: {self.blocked_steps}"
+            f"Plan blocked: {overall_decision}. " f"Blocked steps: {self.blocked_steps}"
         )
 
 
 class SessionClosedError(Exception):
     """Raised when an operation is attempted on a closed session."""
+
     pass
 
 
 class AgentSessionExpiredError(Exception):
     """Raised when an operation is attempted on an expired session."""
+
     pass

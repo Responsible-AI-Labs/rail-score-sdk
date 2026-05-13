@@ -7,10 +7,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-
 # ---------------------------------------------------------------------------
 # Shared sub-models
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class AgentDimensionScore:
@@ -33,6 +33,7 @@ class AgentComplianceViolation:
 @dataclass
 class AgentPolicyResult:
     """Policy metadata embedded in a tool-call evaluation response."""
+
     applied_rule: str
     threshold_used: Dict[str, Any]
     violated_dimensions: List[str]
@@ -51,13 +52,15 @@ class AgentContextSignals:
 # Tool-call evaluation response
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class AgentDecision:
     """Result from client.agent.evaluate_tool_call()."""
-    decision: str                                        # "ALLOW" | "FLAG" | "BLOCK"
+
+    decision: str  # "ALLOW" | "FLAG" | "BLOCK"
     decision_reason: str
     event_id: str
-    rail_score: Any                                      # RailScore from models.py
+    rail_score: Any  # RailScore from models.py
     dimension_scores: Dict[str, AgentDimensionScore]
     compliance_violations: List[AgentComplianceViolation]
     policy: AgentPolicyResult
@@ -71,6 +74,7 @@ class AgentDecision:
 # ---------------------------------------------------------------------------
 # Tool-result evaluation response
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class PiiEntity:
@@ -98,9 +102,12 @@ class InjectionDetection:
 @dataclass
 class ToolResultRisk:
     """Result from client.agent.evaluate_tool_result()."""
+
     event_id: str
-    risk_level: str           # "low" | "medium" | "high" | "critical"
-    recommended_action: str   # "PASS" | "FLAG" | "REDACT_AND_PASS" | "REDACT_AND_FLAG" | "BLOCK"
+    risk_level: str  # "low" | "medium" | "high" | "critical"
+    recommended_action: (
+        str  # "PASS" | "FLAG" | "REDACT_AND_PASS" | "REDACT_AND_FLAG" | "BLOCK"
+    )
     pii_detected: Optional[PiiDetection] = None
     prompt_injection: Optional[InjectionDetection] = None
     rail_score: Optional[Dict[str, Any]] = None
@@ -114,14 +121,16 @@ class ToolResultRisk:
 # Injection check response
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class InjectionCheck:
     """Result from client.agent.check_injection()."""
+
     event_id: str
     injection_detected: bool
     confidence: float
-    attack_type: str   # "none" | "direct_instruction_override" | "role_hijack" | "jailbreak" | ...
-    severity: str      # "none" | "low" | "medium" | "high" | "critical"
+    attack_type: str  # "none" | "direct_instruction_override" | "role_hijack" | "jailbreak" | ...
+    severity: str  # "none" | "low" | "medium" | "high" | "critical"
     payload_preview: Optional[str] = None
     recommended_action: str = "PASS"
     credits_consumed: float = 0.0
@@ -132,11 +141,12 @@ class InjectionCheck:
 # Plan evaluation response
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class PlanStepResult:
     step_index: int
     tool_name: str
-    decision: str    # "ALLOW" | "FLAG" | "BLOCK"
+    decision: str  # "ALLOW" | "FLAG" | "BLOCK"
     rail_score: float
     dimension_scores: Optional[Dict[str, AgentDimensionScore]] = None
     compliance_violations: Optional[List[AgentComplianceViolation]] = None
@@ -147,8 +157,9 @@ class PlanStepResult:
 @dataclass
 class PlanEvaluation:
     """Result from client.agent.evaluate_plan()."""
-    overall_risk: str           # "low" | "medium" | "high" | "critical"
-    overall_decision: str       # "ALLOW_ALL" | "PARTIAL_BLOCK" | "BLOCK_ALL"
+
+    overall_risk: str  # "low" | "medium" | "high" | "critical"
+    overall_decision: str  # "ALLOW_ALL" | "PARTIAL_BLOCK" | "BLOCK_ALL"
     plan_summary: str
     step_results: List[PlanStepResult]
     credits_consumed: float = 0.0
@@ -158,6 +169,7 @@ class PlanEvaluation:
 # ---------------------------------------------------------------------------
 # Tool registry models
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class ToolRiskProfile:
@@ -197,9 +209,10 @@ class RegistryDeleteResult:
 # Session models
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class SessionPattern:
-    pattern: str       # "repeated_pii_access" | "escalating_risk_scores" | ...
+    pattern: str  # "repeated_pii_access" | "escalating_risk_scores" | ...
     description: str
     severity: str
     first_seen: str
@@ -216,14 +229,14 @@ class ComplianceExposure:
 class SessionRiskSummary:
     session_id: str
     agent_id: str
-    status: str          # "active" | "closed"
+    status: str  # "active" | "closed"
     total_tool_calls: int
     allowed: int
     flagged: int
     blocked: int
     critical_violations: int
     current_risk_score: float
-    risk_trend: str      # "stable" | "improving" | "escalating" | "critical"
+    risk_trend: str  # "stable" | "improving" | "escalating" | "critical"
     dimension_averages: Dict[str, float]
     patterns_detected: List[SessionPattern]
     compliance_exposure: Dict[str, ComplianceExposure]
@@ -235,7 +248,8 @@ class SessionRiskSummary:
 @dataclass
 class SessionEvent:
     """Single event in session history."""
-    type: str        # "tool_call" | "tool_result" | "injection_check"
+
+    type: str  # "tool_call" | "tool_result" | "injection_check"
     tool_name: str
     decision: str
     rail_score: Optional[float]

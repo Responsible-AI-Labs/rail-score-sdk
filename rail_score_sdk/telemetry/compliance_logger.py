@@ -121,6 +121,73 @@ class ComplianceLogger:
                 attributes=issue_attrs,
             )
 
+    def log_dpdp_content_result(
+        self,
+        result: Any,
+        content_preview: str = "",
+    ) -> None:
+        """Log a DPDP content scan result.
+
+        Emits INFO for clean scans, WARNING for PII detections,
+        and ERROR for violations with block actions.
+        """
+        compliant = getattr(result, "compliant", True)
+        pii_found = getattr(result, "pii_found", [])
+        violations = getattr(result, "violations", [])
+        child_signals = getattr(result, "child_signals", [])
+
+        attrs = {
+            c.ATTR_DPDP_PII_COUNT: len(pii_found),
+            c.ATTR_DPDP_CHILD_DETECTED: len(child_signals) > 0,
+            c.RESOURCE_ORG_ID: self._telemetry.org_id,
+            c.RESOURCE_PROJECT_ID: self._telemetry.project_id,
+            c.RESOURCE_ENVIRONMENT: self._telemetry.environment,
+        }
+
+        if compliant and not violations:
+            self._emit(
+                level="INFO",
+                body=(
+                    f"DPDP content scan: compliant "
+                    f"(pii={len(pii_found)}, child_signals={len(child_signals)})"
+                ),
+                attributes=attrs,
+            )
+        else:
+            for v in violations:
+                v_attrs = {
+                    **attrs,
+                    c.ATTR_DPDP_VIOLATION_TYPE: v.check,
+                    c.ATTR_DPDP_SECTION: v.section,
+                    c.ATTR_DPDP_ACTION: v.action,
+                }
+                level = "ERROR" if v.action == "block" else "WARNING"
+                self._emit(
+                    level=level,
+                    body=f"[DPDP {v.section}] {v.check}: {v.reason}",
+                    attributes=v_attrs,
+                )
+
+    def log_dpdp_violation(
+        self,
+        violation: Any,
+    ) -> None:
+        """Log a single DPDP violation."""
+        attrs = {
+            c.ATTR_DPDP_VIOLATION_TYPE: violation.check,
+            c.ATTR_DPDP_SECTION: violation.section,
+            c.ATTR_DPDP_ACTION: violation.action,
+            c.RESOURCE_ORG_ID: self._telemetry.org_id,
+            c.RESOURCE_PROJECT_ID: self._telemetry.project_id,
+            c.RESOURCE_ENVIRONMENT: self._telemetry.environment,
+        }
+        level = "ERROR" if violation.action == "block" else "WARNING"
+        self._emit(
+            level=level,
+            body=f"[DPDP {violation.section}] {violation.check}: {violation.reason}",
+            attributes=attrs,
+        )
+
     def log_multi_compliance_result(
         self,
         result: Any,
@@ -300,7 +367,11 @@ class IncidentLogger:
             for k, v in metadata.items():
                 attrs[f"rail.incident.meta.{k}"] = str(v)
 
-        level = "CRITICAL" if severity == "critical" else "ERROR" if severity == "high" else "WARNING"
+        level = (
+            "CRITICAL"
+            if severity == "critical"
+            else "ERROR" if severity == "high" else "WARNING"
+        )
         self._emit(
             level=level,
             body=(
@@ -337,14 +408,19 @@ class IncidentLogger:
             return None
 
         high_issues = [
-            i for i in issues
-            if (i.severity if hasattr(i, "severity") else i.get("severity", "")) == "high"
+            i
+            for i in issues
+            if (i.severity if hasattr(i, "severity") else i.get("severity", ""))
+            == "high"
         ]
         severity = "critical" if score < threshold * 0.5 else "high"
-        affected_dims = list({
-            (i.dimension if hasattr(i, "dimension") else i.get("dimension", ""))
-            for i in issues if (i.dimension if hasattr(i, "dimension") else i.get("dimension", ""))
-        })
+        affected_dims = list(
+            {
+                (i.dimension if hasattr(i, "dimension") else i.get("dimension", ""))
+                for i in issues
+                if (i.dimension if hasattr(i, "dimension") else i.get("dimension", ""))
+            }
+        )
 
         return self.log_incident(
             incident_type="compliance_violation",
@@ -371,11 +447,9 @@ class IncidentLogger:
     ) -> str:
         """Raise an incident when a RAIL score drops below ``threshold``."""
         severity = "critical" if score < threshold * 0.5 else "high"
-        description = (
-            f"RAIL score {score:.1f} is below threshold {threshold:.1f}."
-        )
+        description = f"RAIL score {score:.1f} is below threshold {threshold:.1f}."
         if content_preview:
-            description += f" Content preview: \"{content_preview[:120]}\""
+            description += f' Content preview: "{content_preview[:120]}"'
 
         return self.log_incident(
             incident_type="score_breach",

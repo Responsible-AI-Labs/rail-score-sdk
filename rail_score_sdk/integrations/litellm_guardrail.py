@@ -19,7 +19,7 @@ Usage as a standalone hook (without litellm proxy):
     from rail_score_sdk.integrations import RAILGuardrail
 
     guard = RAILGuardrail(
-        api_key="rail_xxx",
+        api_key="your-rail-api-key",
         guardrail_name="rail-score",
         event_hook="post_call",
         rail_threshold=7.0,
@@ -42,6 +42,7 @@ def _try_import_litellm():
     """Try importing litellm guardrail base class."""
     try:
         from litellm.integrations.custom_guardrail import CustomGuardrail
+
         return CustomGuardrail
     except ImportError:
         return None
@@ -97,6 +98,7 @@ class RAILGuardrail(_LiteLLMBase if _LiteLLMBase is not None else object):
         rail_input_threshold: float = 5.0,
         rail_mode: str = "basic",
         rail_domain: str = "general",
+        dpdp_config: Optional[Any] = None,
         **kwargs: Any,
     ) -> None:
         # Call super if litellm base is available
@@ -114,6 +116,12 @@ class RAILGuardrail(_LiteLLMBase if _LiteLLMBase is not None else object):
         self.rail_input_threshold = rail_input_threshold
         self.rail_mode = rail_mode
         self.rail_domain = rail_domain
+
+        self._dpdp_scanner = None
+        if dpdp_config is not None:
+            from rail_score_sdk.compliance.dpdp.scanner import DPDPContentScanner
+
+            self._dpdp_scanner = DPDPContentScanner(dpdp_config)
 
     # ------------------------------------------------------------------
     # LiteLLM hook: pre_call -- evaluate user input
@@ -134,7 +142,11 @@ class RAILGuardrail(_LiteLLMBase if _LiteLLMBase is not None else object):
             return data
 
         last_user_msg = next(
-            (m.get("content", "") for m in reversed(messages) if m.get("role") == "user"),
+            (
+                m.get("content", "")
+                for m in reversed(messages)
+                if m.get("role") == "user"
+            ),
             None,
         )
         if not last_user_msg or len(last_user_msg) < 10:
@@ -150,9 +162,7 @@ class RAILGuardrail(_LiteLLMBase if _LiteLLMBase is not None else object):
 
             if score < self.rail_input_threshold:
                 issues = result.get("issues", [])
-                issue_text = "; ".join(
-                    i.get("description", "") for i in issues[:3]
-                )
+                issue_text = "; ".join(i.get("description", "") for i in issues[:3])
                 raise Exception(
                     f"RAIL Score input blocked (score={score:.1f}, "
                     f"threshold={self.rail_input_threshold}). Issues: {issue_text}"
@@ -185,8 +195,7 @@ class RAILGuardrail(_LiteLLMBase if _LiteLLMBase is not None else object):
         # Build context from messages
         messages = data.get("messages", [])
         context_parts = [
-            f"{m.get('role', 'user')}: {m.get('content', '')}"
-            for m in messages[-5:]
+            f"{m.get('role', 'user')}: {m.get('content', '')}" for m in messages[-5:]
         ]
 
         try:
@@ -199,13 +208,20 @@ class RAILGuardrail(_LiteLLMBase if _LiteLLMBase is not None else object):
 
             if score < self.rail_threshold:
                 issues = result.get("issues", [])
-                issue_text = "; ".join(
-                    i.get("description", "") for i in issues[:3]
-                )
+                issue_text = "; ".join(i.get("description", "") for i in issues[:3])
                 raise Exception(
                     f"RAIL Score output blocked (score={score:.1f}, "
                     f"threshold={self.rail_threshold}). Issues: {issue_text}"
                 )
+
+            # DPDP content scan on output
+            if self._dpdp_scanner is not None:
+                dpdp_result = self._dpdp_scanner.scan_text(content)
+                for v in dpdp_result.violations:
+                    if v.action == "block":
+                        raise Exception(
+                            f"DPDP compliance blocked ({v.check}): {v.reason}"
+                        )
 
             # Attach RAIL metadata to response (for downstream logging)
             if hasattr(response, "_hidden_params"):
@@ -237,7 +253,11 @@ class RAILGuardrail(_LiteLLMBase if _LiteLLMBase is not None else object):
             return
 
         last_user_msg = next(
-            (m.get("content", "") for m in reversed(messages) if m.get("role") == "user"),
+            (
+                m.get("content", "")
+                for m in reversed(messages)
+                if m.get("role") == "user"
+            ),
             None,
         )
         if not last_user_msg or len(last_user_msg) < 10:
@@ -251,9 +271,7 @@ class RAILGuardrail(_LiteLLMBase if _LiteLLMBase is not None else object):
             )
             score = result.get("rail_score", {}).get("score", 10.0)
             if score < self.rail_input_threshold:
-                raise Exception(
-                    f"RAIL Score moderation blocked (score={score:.1f})"
-                )
+                raise Exception(f"RAIL Score moderation blocked (score={score:.1f})")
         except Exception as exc:
             if "RAIL Score moderation blocked" in str(exc):
                 raise
@@ -279,6 +297,7 @@ class RAILGuardrail(_LiteLLMBase if _LiteLLMBase is not None else object):
             )
         except ImportError:
             import httpx
+
             client = httpx.AsyncClient(timeout=30.0)
 
         payload: Dict[str, Any] = {

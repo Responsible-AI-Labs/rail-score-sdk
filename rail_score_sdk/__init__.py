@@ -6,12 +6,12 @@ Evaluate AI-generated content across 8 dimensions of Responsible AI.
 
 Sync client:
     >>> from rail_score_sdk import RailScoreClient
-    >>> client = RailScoreClient(api_key="rail_xxx...")
+    >>> client = RailScoreClient(api_key="your-rail-api-key...")
     >>> result = client.eval(content="AI should be fair.", mode="basic")
 
 Async client + session:
     >>> from rail_score_sdk import AsyncRAILClient, RAILSession
-    >>> async with RAILSession(api_key="rail_xxx", threshold=7.0) as session:
+    >>> async with RAILSession(api_key="your-rail-api-key", threshold=7.0) as session:
     ...     result = await session.evaluate_turn(
     ...         user_message="Hello",
     ...         assistant_response="Hi there!",
@@ -20,7 +20,7 @@ Async client + session:
 Agent evaluation:
     >>> from rail_score_sdk import RailScoreClient
     >>> from rail_score_sdk.agent import AgentSession, AgentPolicy
-    >>> client = RailScoreClient(api_key="rail_xxx...")
+    >>> client = RailScoreClient(api_key="your-rail-api-key...")
     >>> result = client.agent.evaluate_tool_call(
     ...     tool_name="credit_scoring_api",
     ...     tool_params={"zip_code": "90210", "loan_amount": 50000},
@@ -30,6 +30,8 @@ Agent evaluation:
 LLM provider wrappers:
     >>> from rail_score_sdk.integrations import RAILOpenAI, RAILAnthropic, RAILGemini
 """
+
+__version__ = "2.5.0"
 
 # Sync client (v2 -- requests-based)
 from .client import RailScoreClient
@@ -101,7 +103,27 @@ from .agent import (
     SessionRiskSummary,
 )
 
-__version__ = "2.4.0"
+# DPDP compliance (v2.5+)
+from .compliance.dpdp import (
+    DPDPCompliance,
+    DPDPConfig,
+    DPDPContentScanner,
+    DPDPContentResult,
+    DPDPViolation,
+    DPDPPiiMatch,
+    DPDPChildSignal,
+    DPDPScanResult,
+    DPDPDecision,
+    DPDPEmitResult,
+    DPDPRequireResult,
+    DPDPEvidenceArtefact,
+    DPDPSession,
+    DPDPTimerList,
+    DPDPAuditResult,
+    DPDPError,
+    DPDPBlockedError,
+)
+
 __all__ = [
     # Sync client
     "RailScoreClient",
@@ -165,4 +187,22 @@ __all__ = [
     "InjectionCheck",
     "PlanEvaluation",
     "SessionRiskSummary",
+    # DPDP compliance (v2.5+)
+    "DPDPCompliance",
+    "DPDPConfig",
+    "DPDPContentScanner",
+    "DPDPContentResult",
+    "DPDPViolation",
+    "DPDPPiiMatch",
+    "DPDPChildSignal",
+    "DPDPScanResult",
+    "DPDPDecision",
+    "DPDPEmitResult",
+    "DPDPRequireResult",
+    "DPDPEvidenceArtefact",
+    "DPDPSession",
+    "DPDPTimerList",
+    "DPDPAuditResult",
+    "DPDPError",
+    "DPDPBlockedError",
 ]

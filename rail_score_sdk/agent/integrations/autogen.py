@@ -56,7 +56,9 @@ class RAILAutoGenHook:
             agent_id=agent_id,
             compliance_frameworks=compliance_frameworks or [],
         )
-        self._policy = policy if isinstance(policy, AgentPolicy) else AgentPolicy(policy)
+        self._policy = (
+            policy if isinstance(policy, AgentPolicy) else AgentPolicy(policy)
+        )
 
     # AutoGen hook interface
     def __call__(
@@ -79,6 +81,7 @@ class RAILAutoGenHook:
         if result.decision == "BLOCK":
             if self._policy == AgentPolicy.BLOCK:
                 from ..exceptions import AgentBlockedError
+
                 raise AgentBlockedError(
                     decision_reason=result.decision_reason,
                     rail_score=result.rail_score.score,

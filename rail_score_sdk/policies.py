@@ -29,6 +29,7 @@ class Policy(str, enum.Enum):
     BLOCK = "block"
     REGENERATE = "regenerate"
     CUSTOM = "custom"
+    DPDP_ENFORCE = "dpdp_enforce"
 
 
 class RAILBlockedError(Exception):
@@ -63,6 +64,7 @@ class EvalResult:
     was_regenerated: bool = False
     original_content: Optional[str] = None
     raw_response: Dict[str, Any] = field(default_factory=dict)
+    dpdp: Optional[Any] = None
 
 
 # Type alias for a custom policy callback.
@@ -82,6 +84,7 @@ class PolicyEngine:
         threshold: float = 7.0,
         custom_callback: Optional[CustomPolicyCallback] = None,
         regenerate_max_retries: int = 1,
+        dpdp: Optional[Any] = None,
     ) -> None:
         if isinstance(policy, str):
             policy = Policy(policy)
@@ -89,6 +92,13 @@ class PolicyEngine:
         self.threshold = threshold
         self.custom_callback = custom_callback
         self.regenerate_max_retries = regenerate_max_retries
+
+        self._dpdp_scanner = None
+        if dpdp is not None:
+            from .compliance.dpdp.scanner import DPDPContentScanner
+
+            self._dpdp_scanner = DPDPContentScanner(dpdp)
+            self._dpdp_config = dpdp
 
         if policy == Policy.CUSTOM and custom_callback is None:
             raise ValueError(
@@ -135,6 +145,27 @@ class PolicyEngine:
             improvement_suggestions=suggestions,
             raw_response=eval_response,
         )
+
+        # ---- DPDP_ENFORCE: run content scan before threshold check ------
+        if self.policy == Policy.DPDP_ENFORCE and self._dpdp_scanner is not None:
+            dpdp_result = self._dpdp_scanner.scan_text(content)
+            processed_content, dpdp_result = self._dpdp_scanner.apply_actions(
+                dpdp_result, content
+            )
+            result.dpdp = dpdp_result
+            if dpdp_result.masked_content:
+                result.content = processed_content
+
+            for v in dpdp_result.violations:
+                if v.action == "block":
+                    from .compliance.dpdp.exceptions import DPDPBlockedError
+
+                    raise DPDPBlockedError(
+                        message=v.reason,
+                        violations=dpdp_result.violations,
+                        check=v.check,
+                        section=v.section,
+                    )
 
         if threshold_met:
             return result

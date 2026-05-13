@@ -25,10 +25,10 @@ from ._client import (
     _PLAN_BATCH_HEADER,
 )
 
-
 # ---------------------------------------------------------------------------
 # Async registry client
 # ---------------------------------------------------------------------------
+
 
 class AsyncAgentRegistryClient:
     """Async CRUD client for the tool risk registry."""
@@ -50,7 +50,9 @@ class AsyncAgentRegistryClient:
         if search is not None:
             params["search"] = search
 
-        data = await self._c._request("GET", "/railscore/v1/agent/registry/tools", params=params)
+        data = await self._c._request(
+            "GET", "/railscore/v1/agent/registry/tools", params=params
+        )
         tools = [_parse_tool_profile(t) for t in data.get("tools", [])]
         pag = data.get("pagination", {})
         return ToolRegistryList(
@@ -90,11 +92,15 @@ class AsyncAgentRegistryClient:
         if description is not None:
             payload["description"] = description
 
-        data = await self._c._request("POST", "/railscore/v1/agent/registry/tools", payload=payload)
+        data = await self._c._request(
+            "POST", "/railscore/v1/agent/registry/tools", payload=payload
+        )
         return _parse_tool_profile(data.get("tool", data))
 
     async def delete_tool(self, tool_name: str) -> RegistryDeleteResult:
-        data = await self._c._request("DELETE", f"/railscore/v1/agent/registry/tools/{tool_name}")
+        data = await self._c._request(
+            "DELETE", f"/railscore/v1/agent/registry/tools/{tool_name}"
+        )
         return RegistryDeleteResult(
             tool_name=tool_name,
             deleted=data.get("deleted", True),
@@ -105,6 +111,7 @@ class AsyncAgentRegistryClient:
 # ---------------------------------------------------------------------------
 # Async agent client
 # ---------------------------------------------------------------------------
+
 
 class AsyncAgentClient:
     """
@@ -159,7 +166,10 @@ class AsyncAgentClient:
                 extra_headers=_extra_headers,
             )
         except InsufficientTierError as e:
-            if isinstance(getattr(e, "response", None), dict) and "decision" in e.response:
+            if (
+                isinstance(getattr(e, "response", None), dict)
+                and "decision" in e.response
+            ):
                 return _parse_agent_decision(e.response)
             raise
         return _parse_agent_decision(data)
@@ -193,7 +203,9 @@ class AsyncAgentClient:
         if agent_context is not None:
             payload["agent_context"] = agent_context
 
-        data = await self._c._request("POST", "/railscore/v1/agent/tool-result", payload=payload)
+        data = await self._c._request(
+            "POST", "/railscore/v1/agent/tool-result", payload=payload
+        )
         return _parse_tool_result_risk(data)
 
     async def check_injection(
@@ -209,7 +221,9 @@ class AsyncAgentClient:
         if agent_context is not None:
             payload["agent_context"] = agent_context
 
-        data = await self._c._request("POST", "/railscore/v1/agent/prompt-injection", payload=payload)
+        data = await self._c._request(
+            "POST", "/railscore/v1/agent/prompt-injection", payload=payload
+        )
         return _parse_injection_check(data)
 
     async def evaluate_plan(
@@ -295,7 +309,8 @@ class AsyncAgentClient:
         allow_count = sum(1 for d in decisions if d == "ALLOW")
         plan_summary = (
             f"{allow_count} of {len(step_results)} steps can proceed. "
-            f"Blocked steps: {blocked}." if blocked
+            f"Blocked steps: {blocked}."
+            if blocked
             else f"All {len(step_results)} steps can proceed."
         )
 

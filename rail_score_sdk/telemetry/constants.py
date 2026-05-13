@@ -40,6 +40,20 @@ ATTR_INCIDENT_TITLE = "rail.incident.title"
 ATTR_INCIDENT_THRESHOLD = "rail.incident.threshold"
 ATTR_INCIDENT_AFFECTED_DIMS = "rail.incident.affected_dimensions"
 
+# DPDP compliance attributes
+ATTR_DPDP_VIOLATION_TYPE = "rail.dpdp.violation.type"
+ATTR_DPDP_SECTION = "rail.dpdp.section"
+ATTR_DPDP_PII_TYPE = "rail.dpdp.pii.type"
+ATTR_DPDP_PII_COUNT = "rail.dpdp.pii.count"
+ATTR_DPDP_CHILD_DETECTED = "rail.dpdp.child.detected"
+ATTR_DPDP_CHILD_AGE = "rail.dpdp.child.age"
+ATTR_DPDP_ACTION = "rail.dpdp.action"
+ATTR_DPDP_SESSION_ID = "rail.dpdp.session_id"
+ATTR_DPDP_EVENT_TYPE = "rail.dpdp.event.type"
+ATTR_DPDP_VERDICT = "rail.dpdp.verdict"
+ATTR_DPDP_ENTITY_TYPE = "rail.dpdp.entity_type"
+ATTR_DPDP_SECTOR = "rail.dpdp.sector"
+
 # ---------------------------------------------------------------------------
 # Metric instrument names
 # ---------------------------------------------------------------------------
