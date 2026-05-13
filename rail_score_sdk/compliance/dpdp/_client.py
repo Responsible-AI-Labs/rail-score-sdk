@@ -118,8 +118,12 @@ def _parse_decision(data: Dict[str, Any]) -> DPDPDecision:
         verdict=result.get("verdict", ""),
         violations=[_parse_violation_detail(v) for v in result.get("violations", [])],
         conditions=[_parse_condition(c) for c in result.get("conditions", [])],
-        required_actions=[_parse_required_action(a) for a in result.get("required_actions", [])],
-        required_before_proceed=[_parse_required_action(a) for a in result.get("required_before_proceed", [])],
+        required_actions=[
+            _parse_required_action(a) for a in result.get("required_actions", [])
+        ],
+        required_before_proceed=[
+            _parse_required_action(a) for a in result.get("required_before_proceed", [])
+        ],
         session_state=_parse_session_state(state_data) if state_data else None,
         credits_consumed=data.get("credits_consumed", 0.0),
     )
@@ -148,7 +152,9 @@ def _parse_require_result(data: Dict[str, Any]) -> DPDPRequireResult:
     result = data.get("result", data)
     state_data = result.get("session_state")
     return DPDPRequireResult(
-        required_actions=[_parse_required_action(a) for a in result.get("required_actions", [])],
+        required_actions=[
+            _parse_required_action(a) for a in result.get("required_actions", [])
+        ],
         session_state=_parse_session_state(state_data) if state_data else None,
         credits_consumed=data.get("credits_consumed", 0.0),
     )
@@ -160,7 +166,11 @@ def _parse_evidence(data: Dict[str, Any]) -> DPDPEvidenceArtefact:
         evidence_id=result.get("evidence_id", ""),
         type=result.get("type", ""),
         generated_at=result.get("generated_at", ""),
-        data={k: v for k, v in result.items() if k not in ("evidence_id", "type", "generated_at")},
+        data={
+            k: v
+            for k, v in result.items()
+            if k not in ("evidence_id", "type", "generated_at")
+        },
         credits_consumed=data.get("credits_consumed", 0.0),
     )
 
@@ -198,11 +208,15 @@ def _parse_timer_list(data: Dict[str, Any]) -> DPDPTimerList:
     summary_data = result.get("summary")
     return DPDPTimerList(
         timers=[_parse_timer(t) for t in result.get("timers", [])],
-        summary=DPDPTimerSummary(
-            total_active=summary_data.get("total_active", 0),
-            overdue=summary_data.get("overdue", 0),
-            approaching_15_days=summary_data.get("approaching_15_days", 0),
-        ) if summary_data else None,
+        summary=(
+            DPDPTimerSummary(
+                total_active=summary_data.get("total_active", 0),
+                overdue=summary_data.get("overdue", 0),
+                approaching_15_days=summary_data.get("approaching_15_days", 0),
+            )
+            if summary_data
+            else None
+        ),
         credits_consumed=data.get("credits_consumed", 0.0),
     )
 

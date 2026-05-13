@@ -107,6 +107,7 @@ class RAILSession:
         if dpdp is not None:
             from rail_score_sdk.compliance.dpdp.scanner import DPDPContentScanner
             from rail_score_sdk.compliance.dpdp.models import DPDPLocalSessionState
+
             self._dpdp_scanner = DPDPContentScanner(dpdp)
             self._dpdp_state = DPDPLocalSessionState()
 
@@ -224,12 +225,17 @@ class RAILSession:
         # ---- DPDP: scan user message for child signals / PII ----------
         if self._dpdp_scanner and self._dpdp_state is not None:
             input_scan = self._dpdp_scanner.scan_text(
-                user_message, session_flags=self._dpdp_state.session_flags,
+                user_message,
+                session_flags=self._dpdp_state.session_flags,
             )
             self._dpdp_state.session_flags = input_scan.session_flags
             if input_scan.child_signals:
                 self._dpdp_state.child_data_detected = True
-                ages = [cs.detected_age for cs in input_scan.child_signals if cs.detected_age]
+                ages = [
+                    cs.detected_age
+                    for cs in input_scan.child_signals
+                    if cs.detected_age
+                ]
                 if ages:
                     self._dpdp_state.child_age = min(ages)
 
@@ -251,20 +257,24 @@ class RAILSession:
         dpdp_result = None
         if self._dpdp_scanner and self._dpdp_state is not None:
             dpdp_result = self._dpdp_scanner.scan_text(
-                assistant_response, session_flags=self._dpdp_state.session_flags,
+                assistant_response,
+                session_flags=self._dpdp_state.session_flags,
             )
             assistant_response, dpdp_result = self._dpdp_scanner.apply_actions(
-                dpdp_result, assistant_response,
+                dpdp_result,
+                assistant_response,
             )
             self._dpdp_state.session_flags = dpdp_result.session_flags
             self._dpdp_state.pii_found_total += len(dpdp_result.pii_found)
             self._dpdp_state.violations.extend(dpdp_result.violations)
             for v in dpdp_result.violations:
-                self._dpdp_state.actions_taken.append({
-                    "check": v.check,
-                    "action": v.action,
-                    "turn": self._turn_counter,
-                })
+                self._dpdp_state.actions_taken.append(
+                    {
+                        "check": v.check,
+                        "action": v.action,
+                        "turn": self._turn_counter,
+                    }
+                )
 
         # ---- Apply policy ----
         result = await self._policy.enforce(

@@ -210,9 +210,7 @@ class RAILTelemetry:
             return
         lp = LoggerProvider(resource=self._resource)
         if self.exporter == "console":
-            lp.add_log_record_processor(
-                BatchLogRecordProcessor(ConsoleLogExporter())
-            )
+            lp.add_log_record_processor(BatchLogRecordProcessor(ConsoleLogExporter()))
         elif self.exporter == "otlp":
             log_exporter = self._create_otlp_log_exporter()
             if log_exporter is not None:
@@ -228,16 +226,12 @@ class RAILTelemetry:
                 raise ImportError(
                     "opentelemetry-exporter-otlp-proto-grpc is required for gRPC export."
                 )
-            return OTLPSpanExporterGRPC(
-                endpoint=self.endpoint, headers=self.headers
-            )
+            return OTLPSpanExporterGRPC(endpoint=self.endpoint, headers=self.headers)
         if not _HAS_OTLP_HTTP:
             raise ImportError(
                 "opentelemetry-exporter-otlp-proto-http is required for HTTP export."
             )
-        return OTLPSpanExporterHTTP(
-            endpoint=self.endpoint, headers=self.headers
-        )
+        return OTLPSpanExporterHTTP(endpoint=self.endpoint, headers=self.headers)
 
     def _create_otlp_metric_exporter(self) -> Any:
         if self.protocol == "grpc":
@@ -245,26 +239,18 @@ class RAILTelemetry:
                 raise ImportError(
                     "opentelemetry-exporter-otlp-proto-grpc is required for gRPC export."
                 )
-            return OTLPMetricExporterGRPC(
-                endpoint=self.endpoint, headers=self.headers
-            )
+            return OTLPMetricExporterGRPC(endpoint=self.endpoint, headers=self.headers)
         if not _HAS_OTLP_HTTP:
             raise ImportError(
                 "opentelemetry-exporter-otlp-proto-http is required for HTTP export."
             )
-        return OTLPMetricExporterHTTP(
-            endpoint=self.endpoint, headers=self.headers
-        )
+        return OTLPMetricExporterHTTP(endpoint=self.endpoint, headers=self.headers)
 
     def _create_otlp_log_exporter(self) -> Any:
         if self.protocol == "grpc" and _HAS_OTLP_LOG_GRPC:
-            return OTLPLogExporterGRPC(
-                endpoint=self.endpoint, headers=self.headers
-            )
+            return OTLPLogExporterGRPC(endpoint=self.endpoint, headers=self.headers)
         if self.protocol == "http" and _HAS_OTLP_LOG_HTTP:
-            return OTLPLogExporterHTTP(
-                endpoint=self.endpoint, headers=self.headers
-            )
+            return OTLPLogExporterHTTP(endpoint=self.endpoint, headers=self.headers)
         return None
 
     # ------------------------------------------------------------------

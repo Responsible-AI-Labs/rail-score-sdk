@@ -96,6 +96,7 @@ class PolicyEngine:
         self._dpdp_scanner = None
         if dpdp is not None:
             from .compliance.dpdp.scanner import DPDPContentScanner
+
             self._dpdp_scanner = DPDPContentScanner(dpdp)
             self._dpdp_config = dpdp
 
@@ -158,6 +159,7 @@ class PolicyEngine:
             for v in dpdp_result.violations:
                 if v.action == "block":
                     from .compliance.dpdp.exceptions import DPDPBlockedError
+
                     raise DPDPBlockedError(
                         message=v.reason,
                         violations=dpdp_result.violations,

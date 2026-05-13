@@ -21,7 +21,6 @@ import httpx
 from .agent import AsyncAgentClient
 from .compliance.dpdp._async_client import AsyncDPDPClient
 
-
 _DEFAULT_BASE_URL = "https://api.responsibleailabs.ai"
 _CACHE_TTL_SECONDS = 300  # 5 minutes
 
@@ -63,6 +62,7 @@ class AsyncRAILClient:
         )
         if self._telemetry is not None:
             from .telemetry.instrumentor import RAILInstrumentor
+
             RAILInstrumentor(self._telemetry).instrument_async_client(self)
         return self
 

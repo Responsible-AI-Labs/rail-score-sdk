@@ -34,11 +34,13 @@ class DPDPBlockedError(DPDPError):
 
 class DPDPChildContentBlockedError(DPDPBlockedError):
     """Raised when child-targeted content is blocked (S.9(3))."""
+
     pass
 
 
 class DPDPPiiBlockedError(DPDPBlockedError):
     """Raised when PII is detected with ``pii_action='block'`` (S.8(5))."""
+
     pass
 
 

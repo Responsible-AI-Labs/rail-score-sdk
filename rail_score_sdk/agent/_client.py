@@ -27,10 +27,10 @@ from .models import (
     ToolRiskProfile,
 )
 
-
 # ---------------------------------------------------------------------------
 # Shared parsing helpers (used by both sync and async clients)
 # ---------------------------------------------------------------------------
+
 
 def _parse_rail_score(data: Dict[str, Any]) -> RailScore:
     return RailScore(
@@ -183,7 +183,8 @@ def _parse_plan_step(data: Dict[str, Any]) -> PlanStepResult:
         ),
         compliance_violations=_parse_compliance_violations(
             data.get("compliance_violations")
-        ) or None,
+        )
+        or None,
         suggested_params=data.get("suggested_params"),
         context_signals=_parse_context_signals(cs_raw) if cs_raw else None,
     )
@@ -207,6 +208,7 @@ def _parse_tool_profile(data: Dict[str, Any]) -> ToolRiskProfile:
 # Registry client (sync)
 # ---------------------------------------------------------------------------
 
+
 class AgentRegistryClient:
     """CRUD client for the tool risk registry."""
 
@@ -227,7 +229,9 @@ class AgentRegistryClient:
         if search is not None:
             params["search"] = search
 
-        data = self._c._request("GET", "/railscore/v1/agent/registry/tools", params=params)
+        data = self._c._request(
+            "GET", "/railscore/v1/agent/registry/tools", params=params
+        )
         tools = [_parse_tool_profile(t) for t in data.get("tools", [])]
         pag = data.get("pagination", {})
         return ToolRegistryList(
@@ -267,11 +271,15 @@ class AgentRegistryClient:
         if description is not None:
             payload["description"] = description
 
-        data = self._c._request("POST", "/railscore/v1/agent/registry/tools", json=payload)
+        data = self._c._request(
+            "POST", "/railscore/v1/agent/registry/tools", json=payload
+        )
         return _parse_tool_profile(data.get("tool", data))
 
     def delete_tool(self, tool_name: str) -> RegistryDeleteResult:
-        data = self._c._request("DELETE", f"/railscore/v1/agent/registry/tools/{tool_name}")
+        data = self._c._request(
+            "DELETE", f"/railscore/v1/agent/registry/tools/{tool_name}"
+        )
         return RegistryDeleteResult(
             tool_name=tool_name,
             deleted=data.get("deleted", True),
@@ -363,7 +371,10 @@ class AgentClient:
             )
         except InsufficientTierError as e:
             # Engine returns 403 for BLOCK decisions — not a tier error.
-            if isinstance(getattr(e, "response", None), dict) and "decision" in e.response:
+            if (
+                isinstance(getattr(e, "response", None), dict)
+                and "decision" in e.response
+            ):
                 return _parse_agent_decision(e.response)
             raise
         return _parse_agent_decision(data)
@@ -450,7 +461,9 @@ class AgentClient:
         if agent_context is not None:
             payload["agent_context"] = agent_context
 
-        data = self._c._request("POST", "/railscore/v1/agent/prompt-injection", json=payload)
+        data = self._c._request(
+            "POST", "/railscore/v1/agent/prompt-injection", json=payload
+        )
         return _parse_injection_check(data)
 
     # ------------------------------------------------------------------
@@ -558,7 +571,8 @@ class AgentClient:
         allow_count = sum(1 for d in decisions if d == "ALLOW")
         plan_summary = (
             f"{allow_count} of {len(step_results)} steps can proceed. "
-            f"Blocked steps: {blocked}." if blocked
+            f"Blocked steps: {blocked}."
+            if blocked
             else f"All {len(step_results)} steps can proceed."
         )
 

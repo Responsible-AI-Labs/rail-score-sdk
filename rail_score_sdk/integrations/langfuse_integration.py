@@ -114,7 +114,9 @@ class RAILLangfuse:
 
         # get_client() is the v3 way — it returns the singleton client.
         # If env vars are set it picks them up automatically.
-        self._langfuse = _get_langfuse_client(**lf_kwargs) if lf_kwargs else _get_langfuse_client()
+        self._langfuse = (
+            _get_langfuse_client(**lf_kwargs) if lf_kwargs else _get_langfuse_client()
+        )
 
         self._rail = AsyncRAILClient(api_key=rail_api_key, base_url=rail_base_url)
         self._mode = rail_mode
@@ -176,11 +178,13 @@ class RAILLangfuse:
                 if dim_data is None:
                     continue
                 dim_score = (
-                    dim_data if isinstance(dim_data, (int, float))
+                    dim_data
+                    if isinstance(dim_data, (int, float))
                     else dim_data.get("score", 0)
                 )
                 dim_confidence = (
-                    0.0 if isinstance(dim_data, (int, float))
+                    0.0
+                    if isinstance(dim_data, (int, float))
                     else dim_data.get("confidence", 0)
                 )
                 self._push_score(

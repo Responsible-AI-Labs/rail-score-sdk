@@ -25,10 +25,10 @@ from .models import (
 )
 from ._client import AgentDecision
 
-
 # ---------------------------------------------------------------------------
 # Pattern detection helpers
 # ---------------------------------------------------------------------------
+
 
 def _jaccard_similarity(a: Dict[str, Any], b: Dict[str, Any]) -> float:
     """Approximate Jaccard similarity between two param dicts."""
@@ -44,6 +44,7 @@ def _jaccard_similarity(a: Dict[str, Any], b: Dict[str, Any]) -> float:
 # ---------------------------------------------------------------------------
 # AgentSession
 # ---------------------------------------------------------------------------
+
 
 class AgentSession:
     """
@@ -232,11 +233,17 @@ class AgentSession:
         # Critical compliance check
         if compliance_violations:
             for v in compliance_violations:
-                sev = getattr(v, "severity", v.get("severity", "") if isinstance(v, dict) else "")
+                sev = getattr(
+                    v, "severity", v.get("severity", "") if isinstance(v, dict) else ""
+                )
                 if sev == "critical":
                     self._critical_violations += 1
                     self._had_critical = True
-                fw = getattr(v, "framework", v.get("framework", "") if isinstance(v, dict) else "")
+                fw = getattr(
+                    v,
+                    "framework",
+                    v.get("framework", "") if isinstance(v, dict) else "",
+                )
                 if fw:
                     if fw not in self._compliance_exposure:
                         self._compliance_exposure[fw] = {"violations": 0, "warnings": 0}
@@ -245,7 +252,9 @@ class AgentSession:
         # Dimension score accumulation
         if dimension_scores:
             for dim, ds in dimension_scores.items():
-                score = getattr(ds, "score", ds.get("score", 0.0) if isinstance(ds, dict) else 0.0)
+                score = getattr(
+                    ds, "score", ds.get("score", 0.0) if isinstance(ds, dict) else 0.0
+                )
                 self._dim_scores.setdefault(dim, []).append(score)
 
         # Recent scores for escalating pattern
@@ -272,7 +281,10 @@ class AgentSession:
         window_start = now_ts - self._PATTERN_WINDOW_SECONDS
         for field, timestamps in self._pii_access_log.items():
             recent = [t for t in timestamps if t >= window_start]
-            if len(recent) >= 3 and "repeated_pii_access" not in self._detected_pattern_keys:
+            if (
+                len(recent) >= 3
+                and "repeated_pii_access" not in self._detected_pattern_keys
+            ):
                 self._add_pattern(
                     "repeated_pii_access",
                     f"PII field '{field}' accessed {len(recent)} times in 10 minutes",
@@ -389,6 +401,7 @@ class AgentSession:
 
         if self._had_critical and self._auto_block_after_critical:
             from .exceptions import AgentBlockedError
+
             raise AgentBlockedError(
                 decision_reason="Session auto-blocked: prior critical compliance violation",
                 rail_score=0.0,
@@ -415,8 +428,7 @@ class AgentSession:
 
         # Collect PII field names from context signals
         pii_fields = (
-            result.context_signals.pii_fields_detected
-            if result.context_signals else []
+            result.context_signals.pii_fields_detected if result.context_signals else []
         )
 
         self._total_credits += result.credits_consumed
@@ -518,7 +530,9 @@ class AgentSession:
             agent_id=self.agent_id,
             domain=domain,
             mode=mode,
-            compliance_frameworks=compliance_frameworks or self.compliance_frameworks or None,
+            compliance_frameworks=compliance_frameworks
+            or self.compliance_frameworks
+            or None,
         )
 
         self._total_credits += result.credits_consumed
@@ -547,11 +561,10 @@ class AgentSession:
             for dim, scores in self._dim_scores.items()
             if scores
         }
-        all_scores = [
-            e.rail_score for e in self._history
-            if e.rail_score is not None
-        ]
-        current_risk = round(sum(all_scores) / len(all_scores), 2) if all_scores else 0.0
+        all_scores = [e.rail_score for e in self._history if e.rail_score is not None]
+        current_risk = (
+            round(sum(all_scores) / len(all_scores), 2) if all_scores else 0.0
+        )
 
         # Risk trend
         if len(all_scores) >= 3:

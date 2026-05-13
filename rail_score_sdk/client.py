@@ -126,6 +126,7 @@ class RailScoreClient:
         )
         if telemetry is not None:
             from .telemetry.instrumentor import RAILInstrumentor
+
             RAILInstrumentor(telemetry).instrument_sync_client(self)
         self.agent = AgentClient(self)
         self.dpdp = DPDPClient(self)
@@ -250,7 +251,9 @@ class RailScoreClient:
     def _parse_issues(data: Optional[List[Dict[str, Any]]]) -> Optional[List[Issue]]:
         if data is None:
             return None
-        return [Issue(dimension=i["dimension"], description=i["description"]) for i in data]
+        return [
+            Issue(dimension=i["dimension"], description=i["description"]) for i in data
+        ]
 
     @staticmethod
     def _parse_requirement(data: Dict[str, Any]) -> RequirementResult:
@@ -321,7 +324,9 @@ class RailScoreClient:
             requirements_passed=data["requirements_passed"],
             requirements_failed=data["requirements_failed"],
             requirements_warned=data["requirements_warned"],
-            requirements=[self._parse_requirement(r) for r in data.get("requirements", [])],
+            requirements=[
+                self._parse_requirement(r) for r in data.get("requirements", [])
+            ],
             issues=[self._parse_compliance_issue(i) for i in data.get("issues", [])],
             improvement_suggestions=data.get("improvement_suggestions", []),
             risk_classification_detail=risk_detail,
@@ -378,8 +383,7 @@ class RailScoreClient:
         iteration_history = None
         if result.get("iteration_history"):
             iteration_history = [
-                self._parse_iteration_record(rec)
-                for rec in result["iteration_history"]
+                self._parse_iteration_record(rec) for rec in result["iteration_history"]
             ]
 
         return SafeRegenerateResult(

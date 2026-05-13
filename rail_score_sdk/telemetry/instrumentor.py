@@ -86,13 +86,20 @@ class RAILInstrumentor:
                     if "domain" in json:
                         span.set_attribute(c.ATTR_DOMAIN, json["domain"])
 
-                attrs = {"endpoint": endpoint, "rail.org_id": self._org_id, "rail.project_id": self._project_id}
+                attrs = {
+                    "endpoint": endpoint,
+                    "rail.org_id": self._org_id,
+                    "rail.project_id": self._project_id,
+                }
                 self._request_counter.add(1, attrs)
                 start = time.monotonic()
 
                 try:
                     result = original_request(
-                        method, endpoint, json=json, params=params,
+                        method,
+                        endpoint,
+                        json=json,
+                        params=params,
                         authenticated=authenticated,
                     )
                     duration_ms = (time.monotonic() - start) * 1000
@@ -135,7 +142,11 @@ class RAILInstrumentor:
                     if "domain" in payload:
                         span.set_attribute(c.ATTR_DOMAIN, payload["domain"])
 
-                attrs = {"endpoint": path, "rail.org_id": self._org_id, "rail.project_id": self._project_id}
+                attrs = {
+                    "endpoint": path,
+                    "rail.org_id": self._org_id,
+                    "rail.project_id": self._project_id,
+                }
                 self._request_counter.add(1, attrs)
                 start = time.monotonic()
 
@@ -205,7 +216,9 @@ class RAILInstrumentor:
             result = data.get("result", {})
             if isinstance(result, dict) and "compliance_score" in result:
                 cs = result["compliance_score"]
-                span.set_attribute(c.ATTR_COMPLIANCE_FRAMEWORK, result.get("framework", ""))
+                span.set_attribute(
+                    c.ATTR_COMPLIANCE_FRAMEWORK, result.get("framework", "")
+                )
                 span.set_attribute(c.ATTR_COMPLIANCE_SCORE, cs.get("score", 0))
                 span.set_attribute(c.ATTR_COMPLIANCE_LABEL, cs.get("label", ""))
                 span.set_attribute(

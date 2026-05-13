@@ -114,6 +114,7 @@ class RAILOpenAI:
         self._dpdp_scanner = None
         if dpdp is not None:
             from rail_score_sdk.compliance.dpdp.scanner import DPDPContentScanner
+
             self._dpdp_scanner = DPDPContentScanner(dpdp)
 
     async def chat_completion(
@@ -179,8 +180,7 @@ class RAILOpenAI:
         # 2) RAIL evaluation
         effective_mode = rail_mode or self._mode
         context_parts = [
-            f"{m.get('role', 'user')}: {m.get('content', '')}"
-            for m in messages[-5:]
+            f"{m.get('role', 'user')}: {m.get('content', '')}" for m in messages[-5:]
         ]
 
         async with self._rail:

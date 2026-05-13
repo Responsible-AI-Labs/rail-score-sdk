@@ -39,8 +39,7 @@ class DPDPContentScanner:
     def __init__(self, config: DPDPConfig) -> None:
         self._config = config
         self._active_patterns = {
-            k: v for k, v in PII_PATTERNS.items()
-            if k in config.pii_patterns
+            k: v for k, v in PII_PATTERNS.items() if k in config.pii_patterns
         }
 
     def scan_text(
@@ -78,14 +77,16 @@ class DPDPContentScanner:
             violations.append(purpose_violation)
 
         if pii_found:
-            violations.append(DPDPViolation(
-                check="pii_leak",
-                section=SECTION_REFS["pii_leak"],
-                reason=f"Indian PII detected: {', '.join(sorted({p.type for p in pii_found}))}",
-                action=self._config.pii_action,
-                found=", ".join(p.type for p in pii_found),
-                severity="critical",
-            ))
+            violations.append(
+                DPDPViolation(
+                    check="pii_leak",
+                    section=SECTION_REFS["pii_leak"],
+                    reason=f"Indian PII detected: {', '.join(sorted({p.type for p in pii_found}))}",
+                    action=self._config.pii_action,
+                    found=", ".join(p.type for p in pii_found),
+                    severity="critical",
+                )
+            )
 
         compliant = len(violations) == 0
         return DPDPContentResult(
@@ -123,7 +124,10 @@ class DPDPContentScanner:
 
         if "child_data_detected" in result.session_flags:
             for v in result.violations:
-                if v.check == "child_targeting" and self._config.child_content_action == "block":
+                if (
+                    v.check == "child_targeting"
+                    and self._config.child_content_action == "block"
+                ):
                     processed = self._block_text(
                         "[Content blocked: behavioral targeting not permitted for users under 18]"
                     )
@@ -150,20 +154,22 @@ class DPDPContentScanner:
                 masker = PII_MASKERS.get(pii_type)
                 masked = masker(m) if masker else f"[{pii_type.upper()}]"
 
-                matches.append(DPDPPiiMatch(
-                    type=pii_type,
-                    value=raw,
-                    start=m.start(),
-                    end=m.end(),
-                    masked_value=masked,
-                ))
+                matches.append(
+                    DPDPPiiMatch(
+                        type=pii_type,
+                        value=raw,
+                        start=m.start(),
+                        end=m.end(),
+                        masked_value=masked,
+                    )
+                )
         return matches
 
     def _mask_pii(self, text: str, pii_matches: List[DPDPPiiMatch]) -> str:
         sorted_matches = sorted(pii_matches, key=lambda m: m.start, reverse=True)
         result = text
         for pm in sorted_matches:
-            result = result[:pm.start] + pm.masked_value + result[pm.end:]
+            result = result[: pm.start] + pm.masked_value + result[pm.end :]
         return result
 
     @staticmethod
@@ -181,21 +187,25 @@ class DPDPContentScanner:
             for m in pattern.finditer(text):
                 age = int(m.group(1))
                 if age < CHILD_AGE_THRESHOLD:
-                    signals.append(DPDPChildSignal(
-                        signal_type="age_mention",
-                        evidence=m.group().strip(),
-                        detected_age=age,
-                    ))
+                    signals.append(
+                        DPDPChildSignal(
+                            signal_type="age_mention",
+                            evidence=m.group().strip(),
+                            detected_age=age,
+                        )
+                    )
 
         for pattern in CHILD_CONTEXT_PATTERNS:
             for m in pattern.finditer(text):
                 age = int(m.group(1))
                 if age < CHILD_AGE_THRESHOLD:
-                    signals.append(DPDPChildSignal(
-                        signal_type="age_mention",
-                        evidence=m.group().strip(),
-                        detected_age=age,
-                    ))
+                    signals.append(
+                        DPDPChildSignal(
+                            signal_type="age_mention",
+                            evidence=m.group().strip(),
+                            detected_age=age,
+                        )
+                    )
 
         for pattern in CHILD_SCHOOL_PATTERNS:
             for m in pattern.finditer(text):
@@ -208,25 +218,31 @@ class DPDPContentScanner:
                         continue
                 except ValueError:
                     pass
-                signals.append(DPDPChildSignal(
-                    signal_type="grade_mention",
-                    evidence=m.group().strip(),
-                    detected_age=inferred_age,
-                ))
+                signals.append(
+                    DPDPChildSignal(
+                        signal_type="grade_mention",
+                        evidence=m.group().strip(),
+                        detected_age=inferred_age,
+                    )
+                )
 
         if CHILD_MINOR_KEYWORDS.search(text):
             m = CHILD_MINOR_KEYWORDS.search(text)
-            signals.append(DPDPChildSignal(
-                signal_type="minor_keyword",
-                evidence=m.group().strip(),
-            ))
+            signals.append(
+                DPDPChildSignal(
+                    signal_type="minor_keyword",
+                    evidence=m.group().strip(),
+                )
+            )
 
         if CHILD_PARENTAL_PATTERNS.search(text):
             m = CHILD_PARENTAL_PATTERNS.search(text)
-            signals.append(DPDPChildSignal(
-                signal_type="parental_reference",
-                evidence=m.group().strip(),
-            ))
+            signals.append(
+                DPDPChildSignal(
+                    signal_type="parental_reference",
+                    evidence=m.group().strip(),
+                )
+            )
 
         return signals
 
@@ -243,12 +259,12 @@ class DPDPContentScanner:
             return None
 
         targeting_patterns = [
-            r'\bbased\s+on\s+(?:his|her|their|your)\s+(?:browsing|behavior|activity|profile|purchase)',
-            r'\brecommend(?:ed|ation|s)?\b.*\b(?:product|supplement|purchase|buy)\b',
-            r'\btargeted\s+(?:ad|advertisement|content|offer)',
-            r'\bsimilar\s+users?\s+(?:also\s+)?(?:bought|purchased|liked)',
-            r'\bpersonali[sz]ed\s+(?:offer|deal|recommendation)',
-            r'\bbehavioral\s+(?:tracking|monitoring|profiling|analysis)',
+            r"\bbased\s+on\s+(?:his|her|their|your)\s+(?:browsing|behavior|activity|profile|purchase)",
+            r"\brecommend(?:ed|ation|s)?\b.*\b(?:product|supplement|purchase|buy)\b",
+            r"\btargeted\s+(?:ad|advertisement|content|offer)",
+            r"\bsimilar\s+users?\s+(?:also\s+)?(?:bought|purchased|liked)",
+            r"\bpersonali[sz]ed\s+(?:offer|deal|recommendation)",
+            r"\bbehavioral\s+(?:tracking|monitoring|profiling|analysis)",
         ]
 
         for pat_str in targeting_patterns:

@@ -6,38 +6,34 @@ import re
 # Indian PII regex patterns
 # ---------------------------------------------------------------------------
 
-AADHAAR_PATTERN = re.compile(r'\b([2-9]\d{3})\s?(\d{4})\s?(\d{4})\b')
+AADHAAR_PATTERN = re.compile(r"\b([2-9]\d{3})\s?(\d{4})\s?(\d{4})\b")
 
-PAN_PATTERN = re.compile(r'\b[A-Z]{5}\d{4}[A-Z]\b')
+PAN_PATTERN = re.compile(r"\b[A-Z]{5}\d{4}[A-Z]\b")
 
-MOBILE_IN_PATTERN = re.compile(r'\b(?:\+91[\s\-]?|0)?[6-9]\d{9}\b')
+MOBILE_IN_PATTERN = re.compile(r"\b(?:\+91[\s\-]?|0)?[6-9]\d{9}\b")
 
 UPI_PATTERN = re.compile(
-    r'\b[\w.\-]+@(?:ybl|paytm|oksbi|okaxis|okicici|okhdfcbank|upi|apl|'
-    r'ibl|axl|sbi|icici|hdfcbank|kotak|indus|rbl|federal|idbi|citi|'
-    r'barodampay|unionbankofindia|cnrb|pnb|bob|mahabank|dbs|'
-    r'jupiteraxis|freecharge|phonepe|gpay|slice|niyox)\b',
+    r"\b[\w.\-]+@(?:ybl|paytm|oksbi|okaxis|okicici|okhdfcbank|upi|apl|"
+    r"ibl|axl|sbi|icici|hdfcbank|kotak|indus|rbl|federal|idbi|citi|"
+    r"barodampay|unionbankofindia|cnrb|pnb|bob|mahabank|dbs|"
+    r"jupiteraxis|freecharge|phonepe|gpay|slice|niyox)\b",
     re.IGNORECASE,
 )
 
-VOTER_ID_PATTERN = re.compile(r'\b[A-Z]{3}\d{7}\b')
+VOTER_ID_PATTERN = re.compile(r"\b[A-Z]{3}\d{7}\b")
 
-PASSPORT_PATTERN = re.compile(r'\b[JKLMRSTUVZ]\d{7}\b')
+PASSPORT_PATTERN = re.compile(r"\b[JKLMRSTUVZ]\d{7}\b")
 
-DRIVING_LICENSE_PATTERN = re.compile(
-    r'\b[A-Z]{2}\d{2}\s?\d{4}\s?\d{7}\b'
-)
+DRIVING_LICENSE_PATTERN = re.compile(r"\b[A-Z]{2}\d{2}\s?\d{4}\s?\d{7}\b")
 
-IFSC_PATTERN = re.compile(r'\b[A-Z]{4}0[A-Z0-9]{6}\b')
+IFSC_PATTERN = re.compile(r"\b[A-Z]{4}0[A-Z0-9]{6}\b")
 
 BANK_ACCOUNT_CONTEXT_PATTERN = re.compile(
-    r'(?:account|a/c|acct|bank\s*a/c)[\s#:.\-]*(\d{9,18})\b',
+    r"(?:account|a/c|acct|bank\s*a/c)[\s#:.\-]*(\d{9,18})\b",
     re.IGNORECASE,
 )
 
-GSTIN_PATTERN = re.compile(
-    r'\b\d{2}[A-Z]{5}\d{4}[A-Z]\d[Z][A-Z0-9]\b'
-)
+GSTIN_PATTERN = re.compile(r"\b\d{2}[A-Z]{5}\d{4}[A-Z]\d[Z][A-Z0-9]\b")
 
 PII_PATTERNS = {
     "aadhaar": AADHAAR_PATTERN,
@@ -93,6 +89,7 @@ def verhoeff_validate(number_str: str) -> bool:
 # PII masking functions
 # ---------------------------------------------------------------------------
 
+
 def mask_aadhaar(match: re.Match) -> str:
     """Mask Aadhaar: show last 4 digits only."""
     raw = match.group().replace(" ", "")
@@ -117,8 +114,10 @@ def mask_upi(match: re.Match) -> str:
 def mask_generic(pii_type: str):
     """Return a generic masking function for a given PII type."""
     label = pii_type.upper()
+
     def _mask(match: re.Match) -> str:
         return f"[{label}]"
+
     return _mask
 
 
@@ -141,45 +140,45 @@ PII_MASKERS = {
 
 CHILD_AGE_PATTERNS = [
     re.compile(
-        r'\b(?:I\s+am|I\'m|i\s+am|i\'m|my\s+age\s+is|age[d]?)\s+'
-        r'(?:under\s+)?(\d{1,2})\b',
+        r"\b(?:I\s+am|I\'m|i\s+am|i\'m|my\s+age\s+is|age[d]?)\s+"
+        r"(?:under\s+)?(\d{1,2})\b",
         re.IGNORECASE,
     ),
     re.compile(
-        r'\b(\d{1,2})\s*(?:year|yr)s?\s*old\b',
+        r"\b(\d{1,2})\s*(?:year|yr)s?\s*old\b",
         re.IGNORECASE,
     ),
 ]
 
 CHILD_CONTEXT_PATTERNS = [
     re.compile(
-        r'\bmy\s+(?:son|daughter|child|kid|boy|girl)\s+(?:is\s+)?'
-        r'(?:aged?\s+)?(\d{1,2})\b',
+        r"\bmy\s+(?:son|daughter|child|kid|boy|girl)\s+(?:is\s+)?"
+        r"(?:aged?\s+)?(\d{1,2})\b",
         re.IGNORECASE,
     ),
     re.compile(
-        r'\bmy\s+(?:son|daughter|child|kid|boy|girl)\b.*?\b(\d{1,2})\s*'
-        r'(?:year|yr)s?\s*old\b',
+        r"\bmy\s+(?:son|daughter|child|kid|boy|girl)\b.*?\b(\d{1,2})\s*"
+        r"(?:year|yr)s?\s*old\b",
         re.IGNORECASE,
     ),
 ]
 
 CHILD_SCHOOL_PATTERNS = [
     re.compile(
-        r'\b(?:class|grade|standard)\s*(\d{1,2}|[IVX]+)\b',
+        r"\b(?:class|grade|standard)\s*(\d{1,2}|[IVX]+)\b",
         re.IGNORECASE,
     ),
-    re.compile(r'\b(?:\d{1,2}th|[IVX]+th)\s+(?:class|grade|standard)\b', re.IGNORECASE),
+    re.compile(r"\b(?:\d{1,2}th|[IVX]+th)\s+(?:class|grade|standard)\b", re.IGNORECASE),
 ]
 
 CHILD_MINOR_KEYWORDS = re.compile(
-    r'\b(?:I\s+am\s+a\s+minor|i\s+am\s+underage|i\'m\s+a\s+minor)\b',
+    r"\b(?:I\s+am\s+a\s+minor|i\s+am\s+underage|i\'m\s+a\s+minor)\b",
     re.IGNORECASE,
 )
 
 CHILD_PARENTAL_PATTERNS = re.compile(
-    r'\b(?:my\s+(?:parents?|mom|dad|mother|father|guardian)\s+'
-    r'(?:said|told|asked|wants?))\b',
+    r"\b(?:my\s+(?:parents?|mom|dad|mother|father|guardian)\s+"
+    r"(?:said|told|asked|wants?))\b",
     re.IGNORECASE,
 )
 
@@ -214,56 +213,75 @@ SECTION_REFS = {
 # Event type taxonomy (for Phase 2)
 # ---------------------------------------------------------------------------
 
-CONSENT_EVENTS = frozenset([
-    "notice.shown",
-    "consent.granted",
-    "consent.refused",
-    "consent.withdrawn",
-])
+CONSENT_EVENTS = frozenset(
+    [
+        "notice.shown",
+        "consent.granted",
+        "consent.refused",
+        "consent.withdrawn",
+    ]
+)
 
-DECISION_EVENTS = frozenset([
-    "decision.made",
-    "explanation.shown",
-    "appeal.opened",
-    "appeal.resolved",
-])
+DECISION_EVENTS = frozenset(
+    [
+        "decision.made",
+        "explanation.shown",
+        "appeal.opened",
+        "appeal.resolved",
+    ]
+)
 
-DSR_EVENTS = frozenset([
-    "dsr.received",
-    "dsr.acknowledged",
-    "dsr.responded",
-    "dsr.escalated",
-])
+DSR_EVENTS = frozenset(
+    [
+        "dsr.received",
+        "dsr.acknowledged",
+        "dsr.responded",
+        "dsr.escalated",
+    ]
+)
 
-DATA_LIFECYCLE_EVENTS = frozenset([
-    "data.collected",
-    "data.shared",
-    "data.transferred",
-    "retention.started",
-    "erasure.executed",
-    "breach.detected",
-])
+DATA_LIFECYCLE_EVENTS = frozenset(
+    [
+        "data.collected",
+        "data.shared",
+        "data.transferred",
+        "retention.started",
+        "erasure.executed",
+        "breach.detected",
+    ]
+)
 
-CHILD_EVENTS = frozenset([
-    "child.detected",
-    "child.parental_consent",
-    "child.tracking_attempted",
-    "child.aged_out",
-])
+CHILD_EVENTS = frozenset(
+    [
+        "child.detected",
+        "child.parental_consent",
+        "child.tracking_attempted",
+        "child.aged_out",
+    ]
+)
 
-MODEL_EVENTS = frozenset([
-    "model.deployed",
-    "model.retrained",
-])
+MODEL_EVENTS = frozenset(
+    [
+        "model.deployed",
+        "model.retrained",
+    ]
+)
 
-AGGREGATE_EVENTS = frozenset([
-    "aggregate.fairness_metrics",
-    "aggregate.decision_stats",
-])
+AGGREGATE_EVENTS = frozenset(
+    [
+        "aggregate.fairness_metrics",
+        "aggregate.decision_stats",
+    ]
+)
 
 ALL_EVENT_TYPES = (
-    CONSENT_EVENTS | DECISION_EVENTS | DSR_EVENTS |
-    DATA_LIFECYCLE_EVENTS | CHILD_EVENTS | MODEL_EVENTS | AGGREGATE_EVENTS
+    CONSENT_EVENTS
+    | DECISION_EVENTS
+    | DSR_EVENTS
+    | DATA_LIFECYCLE_EVENTS
+    | CHILD_EVENTS
+    | MODEL_EVENTS
+    | AGGREGATE_EVENTS
 )
 
 # ---------------------------------------------------------------------------
@@ -271,26 +289,53 @@ ALL_EVENT_TYPES = (
 # ---------------------------------------------------------------------------
 
 VALID_ENTITY_TYPES = frozenset(["data_fiduciary", "significant_data_fiduciary"])
-VALID_SECTORS = frozenset([
-    "fintech", "finance", "banking", "healthcare", "edtech",
-    "e_commerce", "social_media", "other",
-])
+VALID_SECTORS = frozenset(
+    [
+        "fintech",
+        "finance",
+        "banking",
+        "healthcare",
+        "edtech",
+        "e_commerce",
+        "social_media",
+        "other",
+    ]
+)
 VALID_PII_ACTIONS = frozenset(["detect", "mask", "block", "warn", "log"])
 VALID_CHILD_ACTIONS = frozenset(["block", "warn", "log"])
 VALID_DRIFT_ACTIONS = frozenset(["block", "warn", "log"])
 
-VALID_EVALUATE_ACTIONS = frozenset([
-    "process_data", "make_decision", "share_data",
-    "transfer_cross_border", "serve_ad", "track_user",
-])
+VALID_EVALUATE_ACTIONS = frozenset(
+    [
+        "process_data",
+        "make_decision",
+        "share_data",
+        "transfer_cross_border",
+        "serve_ad",
+        "track_user",
+    ]
+)
 
-VALID_WORKFLOW_STEPS = frozenset([
-    "data_collection", "data_processing", "decision_making",
-    "decision_communication", "data_retention", "dsr_handling",
-])
+VALID_WORKFLOW_STEPS = frozenset(
+    [
+        "data_collection",
+        "data_processing",
+        "decision_making",
+        "decision_communication",
+        "data_retention",
+        "dsr_handling",
+    ]
+)
 
-VALID_EVIDENCE_TYPES = frozenset([
-    "dsr_response", "breach_notification_dpbi", "breach_notification_principal",
-    "breach_notification_certin", "compliance_health", "consent_audit",
-    "child_protection_audit", "sdf_annual_report",
-])
+VALID_EVIDENCE_TYPES = frozenset(
+    [
+        "dsr_response",
+        "breach_notification_dpbi",
+        "breach_notification_principal",
+        "breach_notification_certin",
+        "compliance_health",
+        "consent_audit",
+        "child_protection_audit",
+        "sdf_annual_report",
+    ]
+)

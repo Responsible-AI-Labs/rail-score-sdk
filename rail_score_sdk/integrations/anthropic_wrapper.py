@@ -88,8 +88,7 @@ class RAILAnthropic:
             from anthropic import AsyncAnthropic
         except ImportError as exc:
             raise ImportError(
-                "The `anthropic` package is required. "
-                "Install: pip install anthropic"
+                "The `anthropic` package is required. " "Install: pip install anthropic"
             ) from exc
 
         self._anthropic = AsyncAnthropic(api_key=anthropic_api_key)
@@ -101,6 +100,7 @@ class RAILAnthropic:
         self._dpdp_scanner = None
         if dpdp is not None:
             from rail_score_sdk.compliance.dpdp.scanner import DPDPContentScanner
+
             self._dpdp_scanner = DPDPContentScanner(dpdp)
 
     async def message(
@@ -177,8 +177,7 @@ class RAILAnthropic:
         # 2) RAIL evaluation
         effective_mode = rail_mode or self._mode
         context_parts = [
-            f"{m.get('role', 'user')}: {m.get('content', '')}"
-            for m in messages[-5:]
+            f"{m.get('role', 'user')}: {m.get('content', '')}" for m in messages[-5:]
         ]
 
         async with self._rail:

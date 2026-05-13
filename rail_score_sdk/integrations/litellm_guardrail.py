@@ -42,6 +42,7 @@ def _try_import_litellm():
     """Try importing litellm guardrail base class."""
     try:
         from litellm.integrations.custom_guardrail import CustomGuardrail
+
         return CustomGuardrail
     except ImportError:
         return None
@@ -119,6 +120,7 @@ class RAILGuardrail(_LiteLLMBase if _LiteLLMBase is not None else object):
         self._dpdp_scanner = None
         if dpdp_config is not None:
             from rail_score_sdk.compliance.dpdp.scanner import DPDPContentScanner
+
             self._dpdp_scanner = DPDPContentScanner(dpdp_config)
 
     # ------------------------------------------------------------------
@@ -140,7 +142,11 @@ class RAILGuardrail(_LiteLLMBase if _LiteLLMBase is not None else object):
             return data
 
         last_user_msg = next(
-            (m.get("content", "") for m in reversed(messages) if m.get("role") == "user"),
+            (
+                m.get("content", "")
+                for m in reversed(messages)
+                if m.get("role") == "user"
+            ),
             None,
         )
         if not last_user_msg or len(last_user_msg) < 10:
@@ -156,9 +162,7 @@ class RAILGuardrail(_LiteLLMBase if _LiteLLMBase is not None else object):
 
             if score < self.rail_input_threshold:
                 issues = result.get("issues", [])
-                issue_text = "; ".join(
-                    i.get("description", "") for i in issues[:3]
-                )
+                issue_text = "; ".join(i.get("description", "") for i in issues[:3])
                 raise Exception(
                     f"RAIL Score input blocked (score={score:.1f}, "
                     f"threshold={self.rail_input_threshold}). Issues: {issue_text}"
@@ -191,8 +195,7 @@ class RAILGuardrail(_LiteLLMBase if _LiteLLMBase is not None else object):
         # Build context from messages
         messages = data.get("messages", [])
         context_parts = [
-            f"{m.get('role', 'user')}: {m.get('content', '')}"
-            for m in messages[-5:]
+            f"{m.get('role', 'user')}: {m.get('content', '')}" for m in messages[-5:]
         ]
 
         try:
@@ -205,9 +208,7 @@ class RAILGuardrail(_LiteLLMBase if _LiteLLMBase is not None else object):
 
             if score < self.rail_threshold:
                 issues = result.get("issues", [])
-                issue_text = "; ".join(
-                    i.get("description", "") for i in issues[:3]
-                )
+                issue_text = "; ".join(i.get("description", "") for i in issues[:3])
                 raise Exception(
                     f"RAIL Score output blocked (score={score:.1f}, "
                     f"threshold={self.rail_threshold}). Issues: {issue_text}"
@@ -252,7 +253,11 @@ class RAILGuardrail(_LiteLLMBase if _LiteLLMBase is not None else object):
             return
 
         last_user_msg = next(
-            (m.get("content", "") for m in reversed(messages) if m.get("role") == "user"),
+            (
+                m.get("content", "")
+                for m in reversed(messages)
+                if m.get("role") == "user"
+            ),
             None,
         )
         if not last_user_msg or len(last_user_msg) < 10:
@@ -266,9 +271,7 @@ class RAILGuardrail(_LiteLLMBase if _LiteLLMBase is not None else object):
             )
             score = result.get("rail_score", {}).get("score", 10.0)
             if score < self.rail_input_threshold:
-                raise Exception(
-                    f"RAIL Score moderation blocked (score={score:.1f})"
-                )
+                raise Exception(f"RAIL Score moderation blocked (score={score:.1f})")
         except Exception as exc:
             if "RAIL Score moderation blocked" in str(exc):
                 raise
@@ -294,6 +297,7 @@ class RAILGuardrail(_LiteLLMBase if _LiteLLMBase is not None else object):
             )
         except ImportError:
             import httpx
+
             client = httpx.AsyncClient(timeout=30.0)
 
         payload: Dict[str, Any] = {

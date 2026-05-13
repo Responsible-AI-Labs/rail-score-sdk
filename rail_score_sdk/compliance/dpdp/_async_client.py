@@ -204,5 +204,7 @@ class AsyncDPDPClient:
             "context": context,
         }
 
-        data = await self._c._request("POST", "/railscore/v1/compliance/check", json=payload)
+        data = await self._c._request(
+            "POST", "/railscore/v1/compliance/check", json=payload
+        )
         return _parse_audit_result(data)

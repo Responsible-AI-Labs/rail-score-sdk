@@ -14,6 +14,7 @@ from ._client import AgentDecision
 
 class AgentPolicy(str, enum.Enum):
     """Policy mode applied when a tool call fails thresholds."""
+
     BLOCK = "block"
     SUGGEST_FIX = "suggest_fix"
     LOG_ONLY = "log_only"
@@ -23,6 +24,7 @@ class AgentPolicy(str, enum.Enum):
 @dataclass
 class PolicyCheckResult:
     """Result returned by :meth:`AgentPolicyEngine.check`."""
+
     blocked: bool
     flagged: bool
     allowed: bool

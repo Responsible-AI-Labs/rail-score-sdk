@@ -123,6 +123,7 @@ class RAILGemini:
         self._dpdp_scanner = None
         if dpdp is not None:
             from rail_score_sdk.compliance.dpdp.scanner import DPDPContentScanner
+
             self._dpdp_scanner = DPDPContentScanner(dpdp)
 
     async def generate(
@@ -169,7 +170,10 @@ class RAILGemini:
 
         # Extract usage metadata
         usage = {}
-        if hasattr(gemini_response, "usage_metadata") and gemini_response.usage_metadata:
+        if (
+            hasattr(gemini_response, "usage_metadata")
+            and gemini_response.usage_metadata
+        ):
             um = gemini_response.usage_metadata
             usage = {
                 "prompt_tokens": getattr(um, "prompt_token_count", 0),

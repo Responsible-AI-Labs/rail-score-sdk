@@ -367,7 +367,11 @@ class IncidentLogger:
             for k, v in metadata.items():
                 attrs[f"rail.incident.meta.{k}"] = str(v)
 
-        level = "CRITICAL" if severity == "critical" else "ERROR" if severity == "high" else "WARNING"
+        level = (
+            "CRITICAL"
+            if severity == "critical"
+            else "ERROR" if severity == "high" else "WARNING"
+        )
         self._emit(
             level=level,
             body=(
@@ -404,14 +408,19 @@ class IncidentLogger:
             return None
 
         high_issues = [
-            i for i in issues
-            if (i.severity if hasattr(i, "severity") else i.get("severity", "")) == "high"
+            i
+            for i in issues
+            if (i.severity if hasattr(i, "severity") else i.get("severity", ""))
+            == "high"
         ]
         severity = "critical" if score < threshold * 0.5 else "high"
-        affected_dims = list({
-            (i.dimension if hasattr(i, "dimension") else i.get("dimension", ""))
-            for i in issues if (i.dimension if hasattr(i, "dimension") else i.get("dimension", ""))
-        })
+        affected_dims = list(
+            {
+                (i.dimension if hasattr(i, "dimension") else i.get("dimension", ""))
+                for i in issues
+                if (i.dimension if hasattr(i, "dimension") else i.get("dimension", ""))
+            }
+        )
 
         return self.log_incident(
             incident_type="compliance_violation",
@@ -438,11 +447,9 @@ class IncidentLogger:
     ) -> str:
         """Raise an incident when a RAIL score drops below ``threshold``."""
         severity = "critical" if score < threshold * 0.5 else "high"
-        description = (
-            f"RAIL score {score:.1f} is below threshold {threshold:.1f}."
-        )
+        description = f"RAIL score {score:.1f} is below threshold {threshold:.1f}."
         if content_preview:
-            description += f" Content preview: \"{content_preview[:120]}\""
+            description += f' Content preview: "{content_preview[:120]}"'
 
         return self.log_incident(
             incident_type="score_breach",

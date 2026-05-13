@@ -66,7 +66,9 @@ class RAILCrewAICallback:
             agent_id=agent_id,
             compliance_frameworks=compliance_frameworks or [],
         )
-        self._policy = policy if isinstance(policy, AgentPolicy) else AgentPolicy(policy)
+        self._policy = (
+            policy if isinstance(policy, AgentPolicy) else AgentPolicy(policy)
+        )
 
     # CrewAI callback interface
     def on_tool_use(self, tool_name: str, tool_input: Any, **kwargs: Any) -> None:
@@ -79,6 +81,7 @@ class RAILCrewAICallback:
             )
             if result.decision == "BLOCK" and self._policy == AgentPolicy.BLOCK:
                 from ..exceptions import AgentBlockedError
+
                 raise AgentBlockedError(
                     decision_reason=result.decision_reason,
                     rail_score=result.rail_score.score,
@@ -91,7 +94,9 @@ class RAILCrewAICallback:
 
     def on_tool_result(self, tool_name: str, tool_output: Any, **kwargs: Any) -> None:
         """Called by CrewAI after a tool executes."""
-        output_str = str(tool_output) if not isinstance(tool_output, str) else tool_output
+        output_str = (
+            str(tool_output) if not isinstance(tool_output, str) else tool_output
+        )
         self.session.evaluate_tool_result(
             tool_name=tool_name,
             tool_result=output_str,

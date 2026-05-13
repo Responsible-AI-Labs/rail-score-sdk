@@ -3,7 +3,6 @@
 from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional
 
-
 # ---------------------------------------------------------------------------
 # Evaluation models (/railscore/v1/eval)
 # ---------------------------------------------------------------------------

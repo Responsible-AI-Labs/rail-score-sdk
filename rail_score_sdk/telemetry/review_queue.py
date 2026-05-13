@@ -207,9 +207,7 @@ class HumanReviewQueue:
             explanation = (
                 ds.explanation if hasattr(ds, "explanation") else ds.get("explanation")
             )
-            issues = (
-                ds.issues if hasattr(ds, "issues") else ds.get("issues")
-            )
+            issues = ds.issues if hasattr(ds, "issues") else ds.get("issues")
 
             incident_id: Optional[str] = None
             if link_incident:
@@ -315,7 +313,9 @@ class HumanReviewQueue:
         content_preview: str,
     ) -> str:
         """Raise an IncidentLogger incident and return the incident_id."""
-        from .compliance_logger import IncidentLogger  # avoid circular import at module level
+        from .compliance_logger import (
+            IncidentLogger,
+        )  # avoid circular import at module level
 
         incident_logger = IncidentLogger(self._telemetry)
         return incident_logger.log_incident(
@@ -325,7 +325,7 @@ class HumanReviewQueue:
             description=(
                 f"Dimension '{dimension}' scored {score:.1f}, below the "
                 f"review threshold of {threshold:.1f}."
-                + (f" Content: \"{content_preview[:120]}\"" if content_preview else "")
+                + (f' Content: "{content_preview[:120]}"' if content_preview else "")
             ),
             score=score,
             threshold=threshold,
