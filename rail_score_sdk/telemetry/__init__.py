@@ -16,7 +16,7 @@ Usage::
         exporter="console",
     )
 
-    client = RailScoreClient(api_key="rail_xxx", telemetry=telemetry)
+    client = RailScoreClient(api_key="your-rail-api-key", telemetry=telemetry)
     result = client.eval("Some content", mode="basic")
 
     # Structured compliance logging

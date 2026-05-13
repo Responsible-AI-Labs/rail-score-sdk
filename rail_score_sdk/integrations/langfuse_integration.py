@@ -9,7 +9,7 @@ Usage -- standalone:
     from rail_score_sdk.integrations import RAILLangfuse
 
     rl = RAILLangfuse(
-        rail_api_key="rail_xxx",
+        rail_api_key="your-rail-api-key",
         langfuse_public_key="pk-lf-...",
         langfuse_secret_key="sk-lf-...",
     )
@@ -22,9 +22,9 @@ Usage -- as a callback attached to RAILSession:
     from rail_score_sdk import RAILSession
     from rail_score_sdk.integrations import RAILLangfuse
 
-    langfuse_cb = RAILLangfuse(rail_api_key="rail_xxx")
+    langfuse_cb = RAILLangfuse(rail_api_key="your-rail-api-key")
 
-    session = RAILSession(api_key="rail_xxx", threshold=7.0)
+    session = RAILSession(api_key="your-rail-api-key", threshold=7.0)
     result = await session.evaluate_turn(user_message="...", assistant_response="...")
     langfuse_cb.log_eval_result(result, trace_id="trace-abc-123")
 """
@@ -93,6 +93,7 @@ class RAILLangfuse:
         score_dimensions: bool = True,
         score_prefix: str = "rail_",
         rail_base_url: str = "https://api.responsibleailabs.ai",
+        dpdp_events: bool = False,
     ) -> None:
         try:
             from langfuse import get_client as _get_langfuse_client
@@ -120,6 +121,7 @@ class RAILLangfuse:
         self._domain = rail_domain
         self._score_dimensions = score_dimensions
         self._prefix = score_prefix
+        self._dpdp_events = dpdp_events
 
     # ------------------------------------------------------------------
     # Public API
@@ -188,6 +190,34 @@ class RAILLangfuse:
                     observation_id=observation_id,
                     session_id=session_id,
                     metadata={"confidence": dim_confidence},
+                )
+
+        # DPDP violation events
+        if self._dpdp_events and getattr(result, "dpdp", None) is not None:
+            dpdp = result.dpdp
+            for violation in getattr(dpdp, "violations", []):
+                self._push_score(
+                    name=f"{self._prefix}dpdp_{violation.check}",
+                    value=0.0,
+                    trace_id=trace_id,
+                    observation_id=observation_id,
+                    session_id=session_id,
+                    comment=f"DPDP {violation.section}: {violation.reason}",
+                    metadata={
+                        "check": violation.check,
+                        "section": violation.section,
+                        "severity": violation.severity,
+                        "action": violation.action,
+                    },
+                )
+            if getattr(dpdp, "pii_found", None):
+                self._push_score(
+                    name=f"{self._prefix}dpdp_pii_detected",
+                    value=float(len(dpdp.pii_found)),
+                    trace_id=trace_id,
+                    observation_id=observation_id,
+                    session_id=session_id,
+                    comment=f"PII types: {', '.join(m.type for m in dpdp.pii_found)}",
                 )
 
     async def evaluate_and_log(

@@ -10,7 +10,7 @@ Usage:
 
     client = RAILAnthropic(
         anthropic_api_key="sk-ant-...",
-        rail_api_key="rail_xxx",
+        rail_api_key="your-rail-api-key",
         rail_threshold=7.0,
     )
 
@@ -47,6 +47,7 @@ class RAILAnthropicResponse:
     anthropic_response: Any = None
     model: str = ""
     usage: Dict[str, int] = field(default_factory=dict)
+    dpdp: Optional[Any] = None
 
 
 class RAILAnthropic:
@@ -81,6 +82,7 @@ class RAILAnthropic:
         rail_mode: str = "basic",
         rail_domain: str = "general",
         rail_base_url: str = "https://api.responsibleailabs.ai",
+        dpdp: Optional[Any] = None,
     ) -> None:
         try:
             from anthropic import AsyncAnthropic
@@ -95,6 +97,11 @@ class RAILAnthropic:
         self._policy = PolicyEngine(policy=rail_policy, threshold=rail_threshold)
         self._mode = rail_mode
         self._domain = rail_domain
+
+        self._dpdp_scanner = None
+        if dpdp is not None:
+            from rail_score_sdk.compliance.dpdp.scanner import DPDPContentScanner
+            self._dpdp_scanner = DPDPContentScanner(dpdp)
 
     async def message(
         self,
@@ -190,6 +197,15 @@ class RAILAnthropic:
                 async_client=self._rail,
             )
 
+        dpdp_result = None
+        if self._dpdp_scanner is not None:
+            dpdp_result = self._dpdp_scanner.scan_text(result.content)
+            processed, dpdp_result = self._dpdp_scanner.apply_actions(
+                dpdp_result, result.content
+            )
+            if dpdp_result.masked_content:
+                result.content = processed
+
         return RAILAnthropicResponse(
             content=result.content,
             rail_score=result.score,
@@ -202,4 +218,5 @@ class RAILAnthropic:
             anthropic_response=ant_response,
             model=ant_response.model,
             usage=usage,
+            dpdp=dpdp_result,
         )

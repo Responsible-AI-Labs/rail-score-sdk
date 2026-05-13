@@ -4,7 +4,7 @@ Async wrapper around the RAIL Score HTTP API.
 Usage:
     from rail_score_sdk.async_client import AsyncRAILClient
 
-    async with AsyncRAILClient(api_key="rail_xxx") as client:
+    async with AsyncRAILClient(api_key="your-rail-api-key") as client:
         result = await client.eval("Some AI-generated text", mode="basic")
         print(result["rail_score"]["score"])
 """
@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 from .agent import AsyncAgentClient
+from .compliance.dpdp._async_client import AsyncDPDPClient
 
 
 _DEFAULT_BASE_URL = "https://api.responsibleailabs.ai"
@@ -46,6 +47,7 @@ class AsyncRAILClient:
         self._cache: Dict[str, tuple[float, Any]] = {}
         self._client: Optional[httpx.AsyncClient] = None
         self.agent = AsyncAgentClient(self)
+        self.dpdp = AsyncDPDPClient(self)
 
     # ------------------------------------------------------------------
     # Context manager
@@ -143,6 +145,7 @@ class AsyncRAILClient:
         include_explanations: Optional[bool] = None,
         include_issues: Optional[bool] = None,
         include_suggestions: bool = False,
+        dpdp: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """POST /railscore/v1/eval"""
         payload: Dict[str, Any] = {
@@ -162,6 +165,8 @@ class AsyncRAILClient:
             payload["include_explanations"] = include_explanations
         if include_issues is not None:
             payload["include_issues"] = include_issues
+        if dpdp is not None:
+            payload["dpdp"] = dpdp
 
         cache_key = self._cache_key("/railscore/v1/eval", payload)
         cached = self._get_cached(cache_key)

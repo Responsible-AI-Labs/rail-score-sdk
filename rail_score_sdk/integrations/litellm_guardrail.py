@@ -19,7 +19,7 @@ Usage as a standalone hook (without litellm proxy):
     from rail_score_sdk.integrations import RAILGuardrail
 
     guard = RAILGuardrail(
-        api_key="rail_xxx",
+        api_key="your-rail-api-key",
         guardrail_name="rail-score",
         event_hook="post_call",
         rail_threshold=7.0,
@@ -97,6 +97,7 @@ class RAILGuardrail(_LiteLLMBase if _LiteLLMBase is not None else object):
         rail_input_threshold: float = 5.0,
         rail_mode: str = "basic",
         rail_domain: str = "general",
+        dpdp_config: Optional[Any] = None,
         **kwargs: Any,
     ) -> None:
         # Call super if litellm base is available
@@ -114,6 +115,11 @@ class RAILGuardrail(_LiteLLMBase if _LiteLLMBase is not None else object):
         self.rail_input_threshold = rail_input_threshold
         self.rail_mode = rail_mode
         self.rail_domain = rail_domain
+
+        self._dpdp_scanner = None
+        if dpdp_config is not None:
+            from rail_score_sdk.compliance.dpdp.scanner import DPDPContentScanner
+            self._dpdp_scanner = DPDPContentScanner(dpdp_config)
 
     # ------------------------------------------------------------------
     # LiteLLM hook: pre_call -- evaluate user input
@@ -206,6 +212,15 @@ class RAILGuardrail(_LiteLLMBase if _LiteLLMBase is not None else object):
                     f"RAIL Score output blocked (score={score:.1f}, "
                     f"threshold={self.rail_threshold}). Issues: {issue_text}"
                 )
+
+            # DPDP content scan on output
+            if self._dpdp_scanner is not None:
+                dpdp_result = self._dpdp_scanner.scan_text(content)
+                for v in dpdp_result.violations:
+                    if v.action == "block":
+                        raise Exception(
+                            f"DPDP compliance blocked ({v.check}): {v.reason}"
+                        )
 
             # Attach RAIL metadata to response (for downstream logging)
             if hasattr(response, "_hidden_params"):

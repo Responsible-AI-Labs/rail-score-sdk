@@ -4,6 +4,7 @@ import requests
 from typing import Optional, Dict, Any, List, Union
 from . import __version__
 from .agent import AgentClient
+from .compliance.dpdp._client import DPDPClient
 from .models import (
     RailScore,
     DimensionScore,
@@ -54,7 +55,7 @@ class RailScoreClient:
         timeout: Request timeout in seconds (default: 30).
 
     Example:
-        >>> client = RailScoreClient(api_key="rail_xxx...")
+        >>> client = RailScoreClient(api_key="your-rail-api-key")
         >>> result = client.eval(
         ...     content="AI should prioritize human welfare.",
         ...     mode="basic",
@@ -127,6 +128,7 @@ class RailScoreClient:
             from .telemetry.instrumentor import RAILInstrumentor
             RAILInstrumentor(telemetry).instrument_sync_client(self)
         self.agent = AgentClient(self)
+        self.dpdp = DPDPClient(self)
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -413,6 +415,7 @@ class RailScoreClient:
         include_explanations: Optional[bool] = None,
         include_issues: Optional[bool] = None,
         include_suggestions: bool = False,
+        dpdp: Optional[Dict[str, Any]] = None,
     ) -> EvalResult:
         """Evaluate content across RAIL dimensions.
 
@@ -473,6 +476,8 @@ class RailScoreClient:
             payload["include_explanations"] = include_explanations
         if include_issues is not None:
             payload["include_issues"] = include_issues
+        if dpdp is not None:
+            payload["dpdp"] = dpdp
 
         data = self._request("POST", "/railscore/v1/eval", json=payload)
         result = data["result"]

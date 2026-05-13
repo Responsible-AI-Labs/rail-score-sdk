@@ -149,6 +149,56 @@ print(f"Strict mode threshold: 8.5")
 print(f"Requirements: {strict_result.requirements_passed}/{strict_result.requirements_checked} passed")
 print(f"Warnings: {strict_result.requirements_warned}")
 
+# --- Example 6: India DPDP Behavioral Compliance (v2.5+) ---
+print("\n" + "=" * 60)
+print("Example 6: India DPDP — Behavioral Compliance")
+print("=" * 60)
+
+dpdp_result = client.compliance_check(
+    content=(
+        "Our fintech platform processes Aadhaar numbers and PAN cards for "
+        "KYC verification. User consent is obtained via a checkbox during "
+        "onboarding. We store data in AWS Mumbai region with encryption. "
+        "Mobile numbers are collected for OTP verification."
+    ),
+    framework="india_dpdp",
+    context={
+        "domain": "finance",
+        "entity_type": "data_fiduciary",
+        "data_types": ["aadhaar", "pan", "mobile"],
+        "processing_purpose": "kyc_verification",
+    },
+)
+
+print(f"\nScore: {dpdp_result.compliance_score.score}/10 ({dpdp_result.compliance_score.label})")
+print(f"Requirements: {dpdp_result.requirements_passed}/{dpdp_result.requirements_checked} passed")
+
+if dpdp_result.issues:
+    print(f"\nTop Issues:")
+    for issue in dpdp_result.issues[:3]:
+        print(f"  [{issue.severity.upper()}] {issue.description}")
+        print(f"    Article: {issue.article} | Effort: {issue.remediation_effort}")
+
+# Also demonstrate DPDP-specific content scanning (client-side, zero latency)
+from rail_score_sdk.compliance.dpdp import DPDPConfig, DPDPContentScanner
+
+scanner = DPDPContentScanner(DPDPConfig(pii_action="mask", sector="finance"))
+scan_result = scanner.scan_text("Customer Aadhaar: 2234 5678 9012, PAN: ABCDE1234F")
+print(f"\nClient-side PII scan: {len(scan_result.pii_found)} items found")
+for pii in scan_result.pii_found:
+    print(f"  {pii.type}: {pii.value} -> {pii.masked_value}")
+
+# DPDP audit via client.dpdp namespace
+audit = client.dpdp.dpdp_audit(
+    content=(
+        "Our fintech platform processes Aadhaar numbers and PAN cards for "
+        "KYC verification with explicit user consent."
+    ),
+    entity_type="data_fiduciary",
+    sector="finance",
+)
+print(f"\nDPDP Audit: {audit.overall_label} (score: {audit.overall_score})")
+
 print("\n" + "=" * 60)
 print("Compliance Checks Complete!")
 print("=" * 60)

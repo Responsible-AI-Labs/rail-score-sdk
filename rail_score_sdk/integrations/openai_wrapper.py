@@ -10,7 +10,7 @@ Usage:
 
     client = RAILOpenAI(
         openai_api_key="sk-...",
-        rail_api_key="rail_xxx",
+        rail_api_key="your-rail-api-key",
         rail_threshold=7.0,
         rail_policy="regenerate",
     )
@@ -49,6 +49,7 @@ class RAILChatResponse:
     openai_response: Any = None
     model: str = ""
     usage: Dict[str, int] = field(default_factory=dict)
+    dpdp: Optional[Any] = None
 
 
 class RAILOpenAI:
@@ -88,6 +89,7 @@ class RAILOpenAI:
         rail_domain: str = "general",
         rail_base_url: str = "https://api.responsibleailabs.ai",
         openai_base_url: Optional[str] = None,
+        dpdp: Optional[Any] = None,
         **openai_kwargs: Any,
     ) -> None:
         try:
@@ -108,6 +110,11 @@ class RAILOpenAI:
         self._mode = rail_mode
         self._domain = rail_domain
         self._threshold = rail_threshold
+
+        self._dpdp_scanner = None
+        if dpdp is not None:
+            from rail_score_sdk.compliance.dpdp.scanner import DPDPContentScanner
+            self._dpdp_scanner = DPDPContentScanner(dpdp)
 
     async def chat_completion(
         self,
@@ -193,6 +200,16 @@ class RAILOpenAI:
                 async_client=self._rail,
             )
 
+        # 4) DPDP content scan
+        dpdp_result = None
+        if self._dpdp_scanner is not None:
+            dpdp_result = self._dpdp_scanner.scan_text(result.content)
+            processed, dpdp_result = self._dpdp_scanner.apply_actions(
+                dpdp_result, result.content
+            )
+            if dpdp_result.masked_content:
+                result.content = processed
+
         return RAILChatResponse(
             content=result.content,
             rail_score=result.score,
@@ -206,4 +223,5 @@ class RAILOpenAI:
             openai_response=oai_response,
             model=oai_response.model,
             usage=usage,
+            dpdp=dpdp_result,
         )

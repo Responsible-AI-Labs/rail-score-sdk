@@ -10,7 +10,7 @@ Usage:
 
     client = RAILGemini(
         gemini_api_key="AIza...",
-        rail_api_key="rail_xxx",
+        rail_api_key="your-rail-api-key",
         rail_threshold=7.0,
     )
 
@@ -46,6 +46,7 @@ class RAILGeminiResponse:
     gemini_response: Any = None
     model: str = ""
     usage: Dict[str, int] = field(default_factory=dict)
+    dpdp: Optional[Any] = None
 
 
 class RAILGemini:
@@ -89,6 +90,7 @@ class RAILGemini:
         rail_mode: str = "basic",
         rail_domain: str = "general",
         rail_base_url: str = "https://api.responsibleailabs.ai",
+        dpdp: Optional[Any] = None,
     ) -> None:
         try:
             from google import genai
@@ -117,6 +119,11 @@ class RAILGemini:
         self._policy = PolicyEngine(policy=rail_policy, threshold=rail_threshold)
         self._mode = rail_mode
         self._domain = rail_domain
+
+        self._dpdp_scanner = None
+        if dpdp is not None:
+            from rail_score_sdk.compliance.dpdp.scanner import DPDPContentScanner
+            self._dpdp_scanner = DPDPContentScanner(dpdp)
 
     async def generate(
         self,
@@ -205,6 +212,15 @@ class RAILGemini:
                 async_client=self._rail,
             )
 
+        dpdp_result = None
+        if self._dpdp_scanner is not None:
+            dpdp_result = self._dpdp_scanner.scan_text(result.content)
+            processed, dpdp_result = self._dpdp_scanner.apply_actions(
+                dpdp_result, result.content
+            )
+            if dpdp_result.masked_content:
+                result.content = processed
+
         return RAILGeminiResponse(
             content=result.content,
             rail_score=result.score,
@@ -217,4 +233,5 @@ class RAILGemini:
             gemini_response=gemini_response,
             model=model,
             usage=usage,
+            dpdp=dpdp_result,
         )
