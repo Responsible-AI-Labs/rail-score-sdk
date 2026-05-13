@@ -212,7 +212,10 @@ def _parse_timer_list(data: Dict[str, Any]) -> DPDPTimerList:
             DPDPTimerSummary(
                 total_active=summary_data.get("total_active", 0),
                 overdue=summary_data.get("overdue", 0),
-                approaching_15_days=summary_data.get("approaching_15_days", 0),
+                approaching_days=summary_data.get(
+                    "approaching_7_days",
+                    summary_data.get("approaching_15_days", 0),
+                ),
             )
             if summary_data
             else None

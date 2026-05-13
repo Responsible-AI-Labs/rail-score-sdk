@@ -55,7 +55,7 @@ class AsyncDPDPClient:
         if session_id:
             payload["config"]["session_id"] = session_id
 
-        data = await self._c._request("POST", f"{_DPDP_BASE}/scan", json=payload)
+        data = await self._c._request("POST", f"{_DPDP_BASE}/scan", payload=payload)
         return _parse_scan_result(data)
 
     async def evaluate(
@@ -73,7 +73,7 @@ class AsyncDPDPClient:
         if session_id:
             payload["session_id"] = session_id
 
-        data = await self._c._request("POST", f"{_DPDP_BASE}/evaluate", json=payload)
+        data = await self._c._request("POST", f"{_DPDP_BASE}/evaluate", payload=payload)
         return _parse_decision(data)
 
     async def emit(
@@ -90,7 +90,7 @@ class AsyncDPDPClient:
         if session_id:
             payload["session_id"] = session_id
 
-        data = await self._c._request("POST", f"{_DPDP_BASE}/emit", json=payload)
+        data = await self._c._request("POST", f"{_DPDP_BASE}/emit", payload=payload)
         return _parse_emit_result(data)
 
     async def require(
@@ -107,7 +107,7 @@ class AsyncDPDPClient:
         if context:
             payload["context"] = context
 
-        data = await self._c._request("POST", f"{_DPDP_BASE}/require", json=payload)
+        data = await self._c._request("POST", f"{_DPDP_BASE}/require", payload=payload)
         return _parse_require_result(data)
 
     async def evidence(
@@ -121,7 +121,7 @@ class AsyncDPDPClient:
             "params": params,
         }
 
-        data = await self._c._request("POST", f"{_DPDP_BASE}/evidence", json=payload)
+        data = await self._c._request("POST", f"{_DPDP_BASE}/evidence", payload=payload)
         return _parse_evidence(data)
 
     async def create_session(
@@ -145,7 +145,7 @@ class AsyncDPDPClient:
             },
         }
 
-        data = await self._c._request("POST", f"{_DPDP_BASE}/session", json=payload)
+        data = await self._c._request("POST", f"{_DPDP_BASE}/session", payload=payload)
         return _parse_session(data)
 
     async def get_session(self, session_id: str) -> DPDPSession:
@@ -155,7 +155,7 @@ class AsyncDPDPClient:
             "session_id": session_id,
         }
 
-        data = await self._c._request("POST", f"{_DPDP_BASE}/session", json=payload)
+        data = await self._c._request("POST", f"{_DPDP_BASE}/session", payload=payload)
         return _parse_session(data)
 
     async def list_timers(
@@ -205,6 +205,6 @@ class AsyncDPDPClient:
         }
 
         data = await self._c._request(
-            "POST", "/railscore/v1/compliance/check", json=payload
+            "POST", "/railscore/v1/compliance/check", payload=payload
         )
         return _parse_audit_result(data)

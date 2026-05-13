@@ -286,7 +286,7 @@ class DPDPTimerSummary:
 
     total_active: int = 0
     overdue: int = 0
-    approaching_15_days: int = 0
+    approaching_days: int = 0
 
 
 @dataclass
@@ -349,3 +349,17 @@ class DPDPAuditResult:
     partial_result: bool = False
     from_cache: bool = False
     credits: Optional[float] = None
+
+    @property
+    def overall_score(self) -> float:
+        """Convenience: extract the numeric score from compliance_score."""
+        if isinstance(self.compliance_score, dict):
+            return self.compliance_score.get("score", 0.0)
+        return 0.0
+
+    @property
+    def overall_label(self) -> str:
+        """Convenience: extract the label from compliance_score."""
+        if isinstance(self.compliance_score, dict):
+            return self.compliance_score.get("label", "")
+        return ""
