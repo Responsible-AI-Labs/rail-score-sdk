@@ -16,6 +16,7 @@ Official Python client library for the [RAIL Score API](https://responsibleailab
 - **Compliance Checking**: Evaluate against GDPR, CCPA, HIPAA, EU AI Act, India DPDP, India AI Governance
 - **India DPDP Compliance**: Client-side PII detection (Aadhaar, PAN, UPI, mobile), child signal detection, behavioral event primitives (`emit`/`evaluate`/`require`/`evidence`), and system audit with tiered scoring
 - **Policy Engine**: `log_only`, `block`, `regenerate`, `dpdp_enforce`, or `custom` callback on threshold breach
+- **Configuration & Monitoring**: Read-only introspection of the application's governance policy, plan capabilities, and dimension settings (`get_config`, `get_capabilities`, `get_dimensions`)
 - **Multi-Turn Sessions**: Conversation-aware evaluation with per-turn history and adaptive quality gating
 - **Middleware**: Wrap any async LLM function with transparent RAIL evaluation and policy enforcement
 - **Agent Evaluation**: Pre-call tool evaluation, post-call result scanning, prompt injection detection, and multi-step plan pre-flight checks for agentic AI systems
@@ -261,6 +262,31 @@ async with AsyncRAILClient(api_key="your-api-key") as client:
     except RAILBlockedError as e:
         print(f"Blocked — score={e.score}, threshold={e.threshold}")
 ```
+
+---
+
+## Configuration & Monitoring
+
+Every API key is bound to an application whose governance policy is configured
+centrally. Read that configuration at runtime for startup checks and monitoring.
+These calls are read-only and consume no credits.
+
+```python
+from rail_score_sdk import RailScoreClient
+
+client = RailScoreClient(api_key="your-api-key")
+
+cfg = client.get_config()
+print(cfg.application.id, cfg.application.plan)
+print(cfg.policy.enforcement, "locked:", cfg.policy.locked)
+print("enforcement:", cfg.enforcement.mode)   # "enforce" or "monitor"
+
+caps = client.get_capabilities()   # plan features and request limits
+dims = client.get_dimensions()     # dimension weights/thresholds + score bands
+```
+
+`get_config`, `get_capabilities`, and `get_dimensions` are available on both the
+sync and async clients.
 
 ---
 
