@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation & API reference
+    url: https://responsibleailabs.ai/developer/quickstart
+    about: Quick start, API reference, and guides.
+  - name: Security report or account/API-key help
+    url: mailto:research@responsibleailabs.ai
+    about: For private security reports or account issues, email us instead of opening a public issue.

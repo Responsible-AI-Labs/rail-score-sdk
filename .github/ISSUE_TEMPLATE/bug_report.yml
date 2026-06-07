@@ -1,0 +1,65 @@
+name: Bug report
+description: Report a problem with the SDK
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. Please fill in the fields below
+        so we can reproduce it quickly. Redact API keys and personal data.
+  - type: input
+    id: version
+    attributes:
+      label: SDK version
+      description: 'Output of `python -c "import rail_score_sdk; print(rail_score_sdk.__version__)"`'
+      placeholder: e.g. 2.6.0
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+      placeholder: e.g. 3.11.5
+    validations:
+      required: true
+  - type: dropdown
+    id: client
+    attributes:
+      label: Which client?
+      options:
+        - Sync (RailScoreClient)
+        - Async (AsyncRAILClient)
+        - Not applicable
+    validations:
+      required: false
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug, including the full error or traceback.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: A minimal code snippet that reproduces the issue.
+      render: python
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: false
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I have removed API keys and sensitive data from this report
+          required: true
+        - label: I am running a supported Python version (3.8+)
+          required: false
