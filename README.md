@@ -1278,6 +1278,7 @@ See the [`examples/`](examples/) directory for runnable scripts and notebooks:
 |------|---------------|
 | [`basic_usage.py`](examples/basic_usage.py) | Basic and deep evaluation |
 | [`advanced_features.py`](examples/advanced_features.py) | Custom weights, dimension filtering, domain/usecase params |
+| [`application_config.py`](examples/application_config.py) | Read application config, governance policy, capabilities, and dimensions (monitoring) |
 | [`compliance_check.py`](examples/compliance_check.py) | GDPR, CCPA, HIPAA, EU AI Act, multi-framework, strict mode |
 | [`regenerate_content.py`](examples/regenerate_content.py) | RAIL_Safe_LLM and external regeneration modes |
 | [`agent_evaluation.py`](examples/agent_evaluation.py) | Agent evaluation: tool-call, tool-result, injection, plan, session, policy, middleware |
