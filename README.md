@@ -25,6 +25,7 @@ Official Python client library for the [RAIL Score API](https://responsibleailab
 - [Observability Integrations](#observability-integrations)
 - [RAIL Dimensions](#rail-dimensions)
 - [India DPDP Compliance](#india-dpdp-compliance)
+- [Enterprise & Self-Hosted](#enterprise--self-hosted)
 - [Error Handling](#error-handling)
 - [Examples](#examples)
 
@@ -1108,6 +1109,22 @@ engine = PolicyEngine(
 )
 # Raises DPDPBlockedError if Indian PII is detected with pii_action="block"
 ```
+
+---
+
+## Enterprise & self-hosted
+
+For regulated and data-residency-sensitive teams, RAIL is also available as a
+self-hosted deployment where content never leaves your environment:
+
+- **In-environment processing** — evaluation and DPDP compliance run inside your
+  own infrastructure (VPC or on-premise); your data stays with you.
+- **Data-at-rest scanning** — bulk PII and DPDP scanning across files and datasets.
+- **Single-tenant and air-gapped options**, SSO, and audit-grade evidence export.
+
+These capabilities are part of the RAIL enterprise offering.
+Learn more at [responsibleailabs.ai](https://responsibleailabs.ai) or get in touch
+to discuss a deployment.
 
 ---
 
