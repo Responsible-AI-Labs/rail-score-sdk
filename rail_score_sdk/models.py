@@ -283,3 +283,143 @@ class HealthResponse:
 
     status: str
     service: str
+
+
+# ---------------------------------------------------------------------------
+# Introspection models (/railscore/v1/config, /dimensions, /capabilities)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class ApplicationInfo:
+    """The application/environment an API key is bound to."""
+
+    id: str = ""
+    environment: str = ""
+    organization: str = ""
+    plan: str = ""
+
+    @classmethod
+    def from_dict(cls, data: Optional[Dict[str, Any]]) -> "ApplicationInfo":
+        d = data or {}
+        return cls(
+            id=d.get("id", ""),
+            environment=d.get("environment", ""),
+            organization=d.get("organization", ""),
+            plan=d.get("plan", ""),
+        )
+
+
+@dataclass
+class PolicyConfig:
+    """The governance policy configured for an application in the dashboard.
+
+    When ``locked`` is True, the server applies these settings and ignores any
+    conflicting per-request mode/domain/weights.
+    """
+
+    enforcement: str = "log_only"
+    eval_mode: str = "basic"
+    overall_threshold: float = 7.0
+    domain: str = "general"
+    dimension_thresholds: Dict[str, Any] = field(default_factory=dict)
+    dimension_weights: Dict[str, Any] = field(default_factory=dict)
+    compliance: List[Any] = field(default_factory=list)
+    safe_regenerate: Dict[str, Any] = field(default_factory=dict)
+    locked: bool = False
+
+    @classmethod
+    def from_dict(cls, data: Optional[Dict[str, Any]]) -> "PolicyConfig":
+        d = data or {}
+        return cls(
+            enforcement=d.get("enforcement", "log_only"),
+            eval_mode=d.get("evalMode", "basic"),
+            overall_threshold=d.get("overallThreshold", 7.0),
+            domain=d.get("domain", "general"),
+            dimension_thresholds=d.get("dimensionThresholds") or {},
+            dimension_weights=d.get("dimensionWeights") or {},
+            compliance=d.get("compliance") or [],
+            safe_regenerate=d.get("safeRegenerate") or {},
+            locked=bool(d.get("locked", False)),
+        )
+
+
+@dataclass
+class EnforcementState:
+    """Whether the application's policy is actively shaping responses."""
+
+    active: bool = False
+    mode: str = "monitor"
+
+    @classmethod
+    def from_dict(cls, data: Optional[Dict[str, Any]]) -> "EnforcementState":
+        d = data or {}
+        return cls(active=bool(d.get("active", False)), mode=d.get("mode", "monitor"))
+
+
+@dataclass
+class ApplicationConfig:
+    """Current configuration from ``/railscore/v1/config``.
+
+    ``raw`` carries the full payload so no field is lost to shape changes.
+    """
+
+    application: ApplicationInfo = field(default_factory=ApplicationInfo)
+    policy: PolicyConfig = field(default_factory=PolicyConfig)
+    enforcement: EnforcementState = field(default_factory=EnforcementState)
+    raw: Dict[str, Any] = field(default_factory=dict)
+
+    @classmethod
+    def from_dict(cls, data: Optional[Dict[str, Any]]) -> "ApplicationConfig":
+        d = data or {}
+        return cls(
+            application=ApplicationInfo.from_dict(d.get("application")),
+            policy=PolicyConfig.from_dict(d.get("policy")),
+            enforcement=EnforcementState.from_dict(d.get("enforcement")),
+            raw=d,
+        )
+
+
+@dataclass
+class Capabilities:
+    """Plan capabilities from ``/railscore/v1/capabilities``."""
+
+    plan: str = "free"
+    evaluation: Dict[str, Any] = field(default_factory=dict)
+    compliance: Dict[str, Any] = field(default_factory=dict)
+    agent: Dict[str, Any] = field(default_factory=dict)
+    dpdp: Dict[str, Any] = field(default_factory=dict)
+    limits: Dict[str, Any] = field(default_factory=dict)
+    raw: Dict[str, Any] = field(default_factory=dict)
+
+    @classmethod
+    def from_dict(cls, data: Optional[Dict[str, Any]]) -> "Capabilities":
+        d = data or {}
+        return cls(
+            plan=d.get("plan", "free"),
+            evaluation=d.get("evaluation") or {},
+            compliance=d.get("compliance") or {},
+            agent=d.get("agent") or {},
+            dpdp=d.get("dpdp") or {},
+            limits=d.get("limits") or {},
+            raw=d,
+        )
+
+
+@dataclass
+class DimensionsInfo:
+    """RAIL dimension metadata (with this app's weights/thresholds) and score
+    bands from ``/railscore/v1/dimensions``."""
+
+    dimensions: List[Dict[str, Any]] = field(default_factory=list)
+    score_bands: List[Dict[str, Any]] = field(default_factory=list)
+    raw: Dict[str, Any] = field(default_factory=dict)
+
+    @classmethod
+    def from_dict(cls, data: Optional[Dict[str, Any]]) -> "DimensionsInfo":
+        d = data or {}
+        return cls(
+            dimensions=d.get("dimensions") or [],
+            score_bands=d.get("score_bands") or [],
+            raw=d,
+        )

@@ -31,7 +31,7 @@ LLM provider wrappers:
     >>> from rail_score_sdk.integrations import RAILOpenAI, RAILAnthropic, RAILGemini
 """
 
-__version__ = "2.5.0"
+__version__ = "2.6.0"
 
 # Sync client (v2 -- requests-based)
 from .client import RailScoreClient
@@ -70,6 +70,12 @@ from .models import (
     CrossFrameworkSummary,
     MultiComplianceResult,
     HealthResponse,
+    ApplicationConfig,
+    ApplicationInfo,
+    PolicyConfig,
+    EnforcementState,
+    Capabilities,
+    DimensionsInfo,
 )
 
 # Exceptions
@@ -122,6 +128,7 @@ from .compliance.dpdp import (
     DPDPAuditResult,
     DPDPError,
     DPDPBlockedError,
+    DPDPHostedOnlyError,
 )
 
 __all__ = [
@@ -162,6 +169,13 @@ __all__ = [
     "MultiComplianceResult",
     # Utility models
     "HealthResponse",
+    # Introspection models
+    "ApplicationConfig",
+    "ApplicationInfo",
+    "PolicyConfig",
+    "EnforcementState",
+    "Capabilities",
+    "DimensionsInfo",
     # Exceptions
     "RailScoreError",
     "AuthenticationError",
@@ -205,4 +219,5 @@ __all__ = [
     "DPDPAuditResult",
     "DPDPError",
     "DPDPBlockedError",
+    "DPDPHostedOnlyError",
 ]

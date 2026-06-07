@@ -25,6 +25,9 @@ from .models import (
     CrossFrameworkSummary,
     MultiComplianceResult,
     HealthResponse,
+    ApplicationConfig,
+    Capabilities,
+    DimensionsInfo,
 )
 from .exceptions import (
     RailScoreError,
@@ -749,3 +752,34 @@ class RailScoreClient:
         """
         data = self._request("GET", "/health", authenticated=False)
         return HealthResponse(status=data["status"], service=data["service"])
+
+    def get_config(self) -> ApplicationConfig:
+        """Current configuration for this API key's application.
+
+        Returns the bound application/environment, the dashboard-configured
+        governance policy (thresholds, weights, enforcement, safe-regenerate,
+        and whether it is locked), and whether enforcement is currently active.
+        Read-only; consumes no credits. Calls ``GET /railscore/v1/config``.
+
+        Example:
+            >>> cfg = client.get_config()
+            >>> print(cfg.application.id, cfg.policy.locked, cfg.enforcement.mode)
+        """
+        data = self._request("GET", "/railscore/v1/config")
+        return ApplicationConfig.from_dict(data)
+
+    def get_capabilities(self) -> Capabilities:
+        """What this key's plan can access: evaluation modes, compliance
+        frameworks, agent/DPDP features, and request limits. Read-only; no
+        credits. Calls ``GET /railscore/v1/capabilities``.
+        """
+        data = self._request("GET", "/railscore/v1/capabilities")
+        return Capabilities.from_dict(data)
+
+    def get_dimensions(self) -> DimensionsInfo:
+        """The 8 RAIL dimensions with this application's weights/thresholds and
+        the score bands. Read-only; no credits. Calls
+        ``GET /railscore/v1/dimensions``.
+        """
+        data = self._request("GET", "/railscore/v1/dimensions")
+        return DimensionsInfo.from_dict(data)

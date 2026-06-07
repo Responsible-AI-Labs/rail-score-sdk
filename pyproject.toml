@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rail-score-sdk"
-version = "2.5.1"
+version = "2.6.0"
 description = "Evaluate AI-generated content across 8 Responsible AI dimensions — fairness, safety, reliability, transparency, privacy, accountability, inclusivity, user impact"
 readme = {file = "PYPI_README.md", content-type = "text/markdown"}
 requires-python = ">=3.8"

@@ -27,6 +27,9 @@ Core evaluation workflow — basic mode and deep mode with explanations.
 ### [advanced_features.py](advanced_features.py)
 Custom dimension weights, single-dimension evaluation, domain-specific scoring, and basic vs deep mode comparison.
 
+### [application_config.py](application_config.py)
+Read-only introspection of the application's configuration, governance policy (incl. the locked flag), plan capabilities, and dimension metadata — for startup checks and monitoring.
+
 ### [compliance_check.py](compliance_check.py)
 Single-framework and multi-framework compliance checks against GDPR, CCPA, HIPAA, EU AI Act, India DPDP, and India AI Governance. Includes strict mode and risk classification.
 

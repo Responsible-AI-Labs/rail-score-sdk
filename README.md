@@ -17,6 +17,7 @@ Official Python client library for the [RAIL Score API](https://responsibleailab
 - [Safe Regeneration](#safe-regeneration)
 - [Compliance Checking](#compliance-checking)
 - [Policy Engine](#policy-engine)
+- [Configuration & Monitoring](#configuration--monitoring)
 - [Multi-Turn Sessions](#multi-turn-sessions)
 - [Middleware](#middleware)
 - [Agent Evaluation](#agent-evaluation)
@@ -25,7 +26,9 @@ Official Python client library for the [RAIL Score API](https://responsibleailab
 - [Observability Integrations](#observability-integrations)
 - [RAIL Dimensions](#rail-dimensions)
 - [India DPDP Compliance](#india-dpdp-compliance)
+- [Enterprise & Self-Hosted](#enterprise--self-hosted)
 - [Error Handling](#error-handling)
+- [Use Cases](#use-cases)
 - [Examples](#examples)
 
 ---
@@ -365,6 +368,47 @@ async def main():
 
 asyncio.run(main())
 ```
+
+---
+
+## Configuration & Monitoring
+
+Every API key is bound to an application whose governance policy is configured
+centrally (evaluation mode, thresholds, dimension weights, enforcement, and
+safe-regeneration). Read that configuration at runtime — useful for startup
+checks, dashboards, and monitoring. These calls are read-only and **consume no
+credits**.
+
+```python
+from rail_score_sdk import RailScoreClient
+
+client = RailScoreClient(api_key="your-api-key")
+
+cfg = client.get_config()
+
+print(f"App:   {cfg.application.id} ({cfg.application.environment})")
+print(f"Plan:  {cfg.application.plan}")
+print(f"Policy: enforcement={cfg.policy.enforcement}, "
+      f"eval_mode={cfg.policy.eval_mode}, "
+      f"overall_threshold={cfg.policy.overall_threshold}")
+
+# When a policy is locked in the dashboard, the server applies it and ignores
+# conflicting per-request mode/domain/weights. Detect that from your app:
+if cfg.policy.locked:
+    print("Governance policy is locked by an administrator.")
+
+# Is the policy actively shaping responses, or only observing?
+print(f"Enforcement: {cfg.enforcement.mode}")  # "enforce" or "monitor"
+```
+
+| Method | Returns | What it tells you |
+|--------|---------|-------------------|
+| `client.get_config()` | `ApplicationConfig` | Bound application, governance policy (incl. `locked`), enforcement state |
+| `client.get_capabilities()` | `Capabilities` | Plan features and request limits |
+| `client.get_dimensions()` | `DimensionsInfo` | The 8 dimensions with this app's weights/thresholds, plus score bands |
+
+Each model exposes a `.raw` dict with the full server payload, so new fields are
+never lost. All three methods are also available on `AsyncRAILClient`.
 
 ---
 
@@ -1111,6 +1155,22 @@ engine = PolicyEngine(
 
 ---
 
+## Enterprise & self-hosted
+
+For regulated and data-residency-sensitive teams, RAIL is also available as a
+self-hosted deployment where content never leaves your environment:
+
+- **In-environment processing** — evaluation and DPDP compliance run inside your
+  own infrastructure (VPC or on-premise); your data stays with you.
+- **Data-at-rest scanning** — bulk PII and DPDP scanning across files and datasets.
+- **Single-tenant and air-gapped options**, SSO, and audit-grade evidence export.
+
+These capabilities are part of the RAIL enterprise offering.
+Learn more at [responsibleailabs.ai](https://responsibleailabs.ai) or get in touch
+to discuss a deployment.
+
+---
+
 ## Error Handling
 
 All exceptions inherit from `RailScoreError` and carry `status_code`, `message`, and `response`.
@@ -1152,6 +1212,64 @@ except RAILBlockedError as e:
 
 ---
 
+## Use Cases
+
+End-to-end recipes using the verified public API.
+
+### 1. Guardrail an LLM response before showing it to the user
+
+Score a generated answer and hold back anything that falls below your bar.
+
+```python
+from rail_score_sdk import RailScoreClient
+
+client = RailScoreClient(api_key="your-api-key")
+
+FALLBACK = "Sorry, I can't provide a reliable answer to that right now."
+
+
+def guarded_reply(answer: str, threshold: float = 7.0) -> str:
+    """Return the answer only if it meets the RAIL score threshold."""
+    result = client.eval(content=answer, mode="basic")
+    if result.rail_score.score < threshold:
+        # Below the bar — fall back (or regenerate / escalate to review)
+        weakest = min(result.dimension_scores.items(), key=lambda kv: kv[1].score)
+        print(f"Held back (score {result.rail_score.score}/10, "
+              f"weakest: {weakest[0]} {weakest[1].score}/10)")
+        return FALLBACK
+    return answer
+
+
+reply = guarded_reply("Your model's generated answer goes here.")
+print(reply)
+```
+
+### 2. Mask Indian PII before storing user text (India DPDP)
+
+Detect and mask Aadhaar, PAN, phone numbers, and more — entirely via the API.
+
+```python
+from rail_score_sdk import RailScoreClient
+
+client = RailScoreClient(api_key="your-api-key")
+
+result = client.dpdp.scan(
+    "My PAN is ABCDE1234F and you can reach me at 9876543210.",
+    pii_action="mask",
+    purpose="customer_support",
+)
+
+# pii_found lists every detection (even when masking makes the result compliant)
+for item in result.pii_found:
+    print(f"  {item.type}: {item.original} -> {item.masked}")
+
+# Persist the masked version, never the raw input
+safe_text = result.content_masked
+print(safe_text)   # "My PAN is XXXXX1234X and you can reach me at [MOBILE]."
+```
+
+---
+
 ## Examples
 
 See the [`examples/`](examples/) directory for runnable scripts and notebooks:
@@ -1160,6 +1278,7 @@ See the [`examples/`](examples/) directory for runnable scripts and notebooks:
 |------|---------------|
 | [`basic_usage.py`](examples/basic_usage.py) | Basic and deep evaluation |
 | [`advanced_features.py`](examples/advanced_features.py) | Custom weights, dimension filtering, domain/usecase params |
+| [`application_config.py`](examples/application_config.py) | Read application config, governance policy, capabilities, and dimensions (monitoring) |
 | [`compliance_check.py`](examples/compliance_check.py) | GDPR, CCPA, HIPAA, EU AI Act, multi-framework, strict mode |
 | [`regenerate_content.py`](examples/regenerate_content.py) | RAIL_Safe_LLM and external regeneration modes |
 | [`agent_evaluation.py`](examples/agent_evaluation.py) | Agent evaluation: tool-call, tool-result, injection, plan, session, policy, middleware |
