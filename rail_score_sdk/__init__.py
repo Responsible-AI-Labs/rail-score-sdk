@@ -122,6 +122,7 @@ from .compliance.dpdp import (
     DPDPAuditResult,
     DPDPError,
     DPDPBlockedError,
+    DPDPHostedOnlyError,
 )
 
 __all__ = [
@@ -205,4 +206,5 @@ __all__ = [
     "DPDPAuditResult",
     "DPDPError",
     "DPDPBlockedError",
+    "DPDPHostedOnlyError",
 ]

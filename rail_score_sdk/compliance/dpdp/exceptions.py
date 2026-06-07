@@ -76,3 +76,12 @@ class DPDPSessionNotFoundError(DPDPError):
     def __init__(self, session_id: str) -> None:
         self.session_id = session_id
         super().__init__(f"DPDP session not found: {session_id}")
+
+
+class DPDPHostedOnlyError(DPDPError):
+    """Raised when a hosted-only capability is called against a backend that
+    does not serve it.
+
+    Example: ``dpdp_audit`` requires the hosted RAIL Score API and surfaces
+    this error instead of a raw 404/501 when the audit endpoint is unavailable.
+    """

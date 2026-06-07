@@ -41,6 +41,7 @@ from .exceptions import (
     DPDPChildContentBlockedError,
     DPDPConsentRequiredError,
     DPDPError,
+    DPDPHostedOnlyError,
     DPDPPiiBlockedError,
     DPDPSessionNotFoundError,
     DPDPTimerExpiredError,
@@ -250,4 +251,5 @@ __all__ = [
     "DPDPConsentRequiredError",
     "DPDPTimerExpiredError",
     "DPDPSessionNotFoundError",
+    "DPDPHostedOnlyError",
 ]
