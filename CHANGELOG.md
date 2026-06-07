@@ -5,6 +5,18 @@ All notable changes to the RAIL Score Python SDK will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0] - 2026-06-07
+
+### Added
+- New exception `DPDPHostedOnlyError`.
+
+### Changed
+- `create_session` now raises `ValueError` immediately when `purpose` is empty instead of failing server-side with HTTP 400.
+- `dpdp_audit` raises `DPDPHostedOnlyError` instead of a raw 404/501 when the compliance audit endpoint is unavailable.
+
+### Fixed
+- Package metadata version and `__version__` are synchronized (previously 2.5.1 vs 2.5.0).
+
 ## [2.4.0] - 2026-03-23
 
 ### Added
