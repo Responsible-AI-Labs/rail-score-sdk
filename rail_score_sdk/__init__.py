@@ -31,7 +31,7 @@ LLM provider wrappers:
     >>> from rail_score_sdk.integrations import RAILOpenAI, RAILAnthropic, RAILGemini
 """
 
-__version__ = "2.6.0"
+__version__ = "2.6.1"
 
 # Sync client (v2 -- requests-based)
 from .client import RailScoreClient
