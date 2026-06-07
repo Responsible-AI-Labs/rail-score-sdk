@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Union
 
+from ...exceptions import RailScoreError
+from .exceptions import DPDPHostedOnlyError
 from .models import (
     DPDPAuditResult,
     DPDPCondition,
@@ -407,7 +409,14 @@ class DPDPClient:
         """Create a new compliance session.
 
         Calls ``POST /railscore/v1/compliance/dpdp/session``.
+        Raises ValueError if purpose is empty.
         """
+        if not purpose or not purpose.strip():
+            raise ValueError(
+                "purpose is required: the RAIL Score API rejects compliance "
+                "sessions without a declared processing purpose (DPDP S.4). "
+                "Pass purpose='...' describing why the data is processed."
+            )
         payload: Dict[str, Any] = {
             "action": "create",
             "config": {
@@ -472,6 +481,7 @@ class DPDPClient:
 
         Wraps ``compliance_check(framework="india_dpdp")`` with
         entity-specific context and enhanced response parsing.
+        Raises DPDPHostedOnlyError if the audit endpoint is unavailable.
         """
         context: Dict[str, Any] = {
             "entity_type": entity_type,
@@ -488,5 +498,16 @@ class DPDPClient:
             "context": context,
         }
 
-        data = self._c._request("POST", "/railscore/v1/compliance/check", json=payload)
+        try:
+            data = self._c._request(
+                "POST", "/railscore/v1/compliance/check", json=payload
+            )
+        except RailScoreError as e:
+            if getattr(e, "status_code", None) in (404, 501):
+                raise DPDPHostedOnlyError(
+                    "dpdp_audit is available on the hosted RAIL Score API only. "
+                    "Point base_url at https://api.responsibleailabs.ai to run "
+                    "audits."
+                ) from e
+            raise
         return _parse_audit_result(data)
