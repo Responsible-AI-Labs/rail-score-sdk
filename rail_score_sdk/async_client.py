@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional
 import httpx
 from .agent import AsyncAgentClient
 from .compliance.dpdp._async_client import AsyncDPDPClient
+from .models import ApplicationConfig, Capabilities, DimensionsInfo
 
 _DEFAULT_BASE_URL = "https://api.responsibleailabs.ai"
 _CACHE_TTL_SECONDS = 300  # 5 minutes
@@ -255,3 +256,25 @@ class AsyncRAILClient:
     async def health(self) -> Dict[str, str]:
         """GET /health"""
         return await self._request("GET", "/health")
+
+    async def get_config(self) -> ApplicationConfig:
+        """Current configuration for this API key's application (application,
+        governance policy, enforcement state). Read-only; no credits.
+        Calls ``GET /railscore/v1/config``.
+        """
+        data = await self._request("GET", "/railscore/v1/config")
+        return ApplicationConfig.from_dict(data)
+
+    async def get_capabilities(self) -> Capabilities:
+        """Plan capabilities for this key. Read-only; no credits.
+        Calls ``GET /railscore/v1/capabilities``.
+        """
+        data = await self._request("GET", "/railscore/v1/capabilities")
+        return Capabilities.from_dict(data)
+
+    async def get_dimensions(self) -> DimensionsInfo:
+        """RAIL dimensions with this application's weights/thresholds and score
+        bands. Read-only; no credits. Calls ``GET /railscore/v1/dimensions``.
+        """
+        data = await self._request("GET", "/railscore/v1/dimensions")
+        return DimensionsInfo.from_dict(data)

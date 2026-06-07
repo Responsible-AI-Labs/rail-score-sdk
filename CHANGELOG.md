@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.6.0] - 2026-06-07
 
 ### Added
+- `client.get_config()`, `client.get_capabilities()`, and `client.get_dimensions()` (sync and async): read-only introspection of the API key's application configuration, plan capabilities, and dimension metadata. No credits consumed.
 - New exception `DPDPHostedOnlyError`.
 
 ### Changed

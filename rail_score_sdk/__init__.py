@@ -70,6 +70,12 @@ from .models import (
     CrossFrameworkSummary,
     MultiComplianceResult,
     HealthResponse,
+    ApplicationConfig,
+    ApplicationInfo,
+    PolicyConfig,
+    EnforcementState,
+    Capabilities,
+    DimensionsInfo,
 )
 
 # Exceptions
@@ -163,6 +169,13 @@ __all__ = [
     "MultiComplianceResult",
     # Utility models
     "HealthResponse",
+    # Introspection models
+    "ApplicationConfig",
+    "ApplicationInfo",
+    "PolicyConfig",
+    "EnforcementState",
+    "Capabilities",
+    "DimensionsInfo",
     # Exceptions
     "RailScoreError",
     "AuthenticationError",
