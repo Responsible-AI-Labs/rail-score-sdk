@@ -6,6 +6,8 @@ Official Python client library for the [RAIL Score API](https://responsibleailab
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+> **Using an MCP client (Claude, Cursor, Copilot, LangGraph)?** Skip the SDK and connect the hosted [RAIL Score MCP server](https://github.com/Responsible-AI-Labs/rail-score-mcp) at `https://mcp.responsibleailabs.ai/mcp` for the same evaluation, guardrails, and compliance over one URL.
+
 ---
 
 ## Table of Contents
