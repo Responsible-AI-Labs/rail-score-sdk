@@ -3,22 +3,8 @@ name: Python CI
 on:
   push:
     branches: [ main, develop, python/** ]
-    paths:
-      - 'rail_score_sdk/**'
-      - 'tests/**'
-      - 'pyproject.toml'
-      - 'setup.py'
-      - 'requirements*.txt'
-      - '.github/workflows/python-ci.yml'
   pull_request:
     branches: [ main, develop ]
-    paths:
-      - 'rail_score_sdk/**'
-      - 'tests/**'
-      - 'pyproject.toml'
-      - 'setup.py'
-      - 'requirements*.txt'
-      - '.github/workflows/python-ci.yml'
 
 jobs:
   lint:
@@ -171,3 +157,22 @@ jobs:
     - name: Run bandit security scan
       run: |
         bandit -r rail_score_sdk -ll || true
+
+  # Single gate that reflects the whole pipeline, used as the required status
+  # check for branch protection. Runs even when a dependency fails so a skipped
+  # job can never silently satisfy the requirement.
+  ci:
+    name: ci
+    if: ${{ always() }}
+    needs: [lint, test, build]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Verify required jobs succeeded
+      run: |
+        echo "lint=${{ needs.lint.result }} test=${{ needs.test.result }} build=${{ needs.build.result }}"
+        if [ "${{ needs.lint.result }}" != "success" ] || \
+           [ "${{ needs.test.result }}" != "success" ] || \
+           [ "${{ needs.build.result }}" != "success" ]; then
+          echo "::error::One or more required CI jobs did not succeed"
+          exit 1
+        fi
